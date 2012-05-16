@@ -29,16 +29,11 @@ def transcoded_filename(filename):
     return base(filename) + '.ogg'
 
 def munge_m3u(rel_dir, file):
-    # TODO(jleen): Hard link if no changes needed.
     logging.info('Munging playlist %s in %s' % (file, rel_dir))
     with open(os.path.join(args.music, rel_dir, file), 'r') as f:
         lines = [x.rstrip() for x in f.readlines()]
 
-    needs_munging = False
-    for line in lines:
-        if extension(line) in transcode_formats: needs_munging = True; break
-
-    if needs_munging:
+    if any(extension(line) in transcode_formats for line in lines):
         ensure_dir(join(args.cache, rel_dir))
         with open(join(args.cache, rel_dir, file), 'w') as out_f:
             for line in lines:
