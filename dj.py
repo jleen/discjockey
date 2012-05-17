@@ -16,7 +16,10 @@ parser.add_argument('--flac_bin', metavar='PATH',
 parser.add_argument('-v', '--verbose', action='store_true')
 
 args = parser.parse_args()
-if args.verbose: logging.basicConfig(level=logging.INFO)
+
+if args.verbose: log_level = logging.INFO
+else: log_level = logging.WARNING
+logging.basicConfig(level=log_level, format='%(message)s')
 
 transcode_formats = [ '.flac' ]
 okay_formats = [ '.mp3', '.ogg' ]
@@ -67,7 +70,7 @@ def create_m3u(rel_dir, files):
             out_f.write('%s\n' % (music_file))
 
 def transcode_flac(rel_dir, file):
-    logging.info('Transcoding %s in %s' % (file, rel_dir))
+    print 'Transcoding %s' % (os.path.join(rel_dir, file))
     ensure_dir(cache_path(rel_dir))
     flac_path = music_path(rel_dir, file)
     ogg_path = cache_path(rel_dir, transcoded_filename(file))
