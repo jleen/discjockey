@@ -37,6 +37,20 @@ def zeroes(num): return '0' * int(1 + math.floor(math.log10(num)))
 def ensure_dir(dirname):
     if not os.path.isdir(dirname): os.makedirs(dirname)
 
+def remove_spurious_file(path):
+    logging.info('Removing spurious file %s' % (path))
+    os.unlink(path)
+
+def remove_spurious_dir(path):
+    logging.info('Removing spurious directory %s' % (path))
+    shutil.rmtree(path)
+
+def nuke_non_file(path):
+    if not os.path.exists(path): return
+    if os.path.islink(path): remove_spurious_file(path)
+    elif os.path.isdir(path): remove_spurious_dir(path)
+    elif not os.path.isfile(path): remove_spurious_file(path)
+
 def transcoded_filename(filename):
     if extension(filename) in transcode_formats: return base(filename) + '.ogg'
     else: return filename
@@ -45,6 +59,7 @@ def munge_m3u(rel_dir, filename):
     src = music_path(rel_dir, filename)
     dst = cache_path(rel_dir, filename)
 
+    nuke_non_file(dst)
     if (os.path.isfile(dst) and
             os.stat(dst).st_mtime >= os.stat(src).st_mtime):
         logging.info('Not re-munging %s' % dst)
@@ -74,6 +89,7 @@ def create_m3u(rel_dir, files):
     src_dir = music_path(rel_dir)
     m3u_path = cache_path(rel_dir, m3u_filename)
 
+    nuke_non_file(m3u_path)
     if (os.path.isfile(m3u_path) and
             os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
         logging.info('Not recreating %s' % m3u_path)
@@ -93,6 +109,7 @@ def transcode_flac(rel_dir, filename):
     flac_path = music_path(rel_dir, filename)
     ogg_path = cache_path(rel_dir, transcoded_filename(filename))
 
+    nuke_non_file(ogg_path)
     if (os.path.isfile(ogg_path) and
             os.stat(ogg_path).st_mtime >= os.stat(flac_path).st_mtime):
         logging.info('Not re-transcoding %s' % ogg_path)
@@ -128,6 +145,7 @@ def create_link(rel_dir, filename):
     ensure_dir(cache_path(rel_dir))
     src = music_path(rel_dir, filename); dst = cache_path(rel_dir, filename)
 
+    nuke_non_file(dst)
     if os.path.isfile(dst):
         # Nothin' to do if src and dst are already hard link buddies.
         if os.stat(src).st_ino == os.stat(dst).st_ino:
@@ -145,38 +163,33 @@ def update_cache():
         assert path[0:len(args.music)] == args.music
         rel_dir = path[1 + len(args.music):]
 
-        # Remove files and directories from the cache that aren't in the master.
-        dir_set = frozenset(dirs)
-        # TODO(jleen): Recognize generated playlist filenames.
-        file_set = frozenset(transcoded_filename(f) for f in files)
-        if os.path.isdir(cache_path(rel_dir)):
-            for filename in os.listdir(cache_path(rel_dir)):
-                path = cache_path(rel_dir, filename)
-                if os.path.isfile(path) and filename not in file_set:
-                    logging.info('Removing spurious file %s' % (path))
-                    os.unlink(path)
-                if os.path.isdir(path) and filename not in dir_set:
-                    logging.info('Removing spurious directory %s' % (path))
-                    shutil.rmtree(path)
-
         # Build cache files that are missing or outdated.
-        did_music = False; did_playlist = False
+        did_music = False; did_playlist = False; file_set = set()
         for filename in files:
             ext = extension(filename)
-            if ext == '.m3u': munge_m3u(rel_dir, filename); did_playlist = True
-            if ext == '.flac': transcode_flac(rel_dir, filename)
-            if ext in link_extns: create_link(rel_dir, filename)
+            if ext == '.m3u':
+                munge_m3u(rel_dir, filename)
+                file_set.add(filename)
+                did_playlist = True
+            if ext == '.flac':
+                transcode_flac(rel_dir, filename)
+                file_set.add(transcoded_filename(filename))
+            if ext in link_extns:
+                create_link(rel_dir, filename)
+                file_set.add(filename)
             if ext in music_formats: did_music = True
         if did_music and not did_playlist: create_m3u(rel_dir, files)
 
-
-
-def prune_cache():
-    """Removes files in the cache that have no corresponding filename in the
-    master.  Requires -f if removing more than ten files."""
-    # TODO(jleen): Hey, that sounds like a good idea!
-    pass
+        # Remove files and directories from the cache that aren't in the master.
+        dir_set = frozenset(dirs)
+        if os.path.isdir(cache_path(rel_dir)):
+            for filename in os.listdir(cache_path(rel_dir)):
+                path = cache_path(rel_dir, filename)
+                if os.path.isdir(path):
+                    if filename not in dir_set:
+                        if os.path.islink(path): remove_spurious_file(path)
+                        else: remove_spurious_dir(path)
+                elif filename not in file_set: remove_spurious_file(path)
 
 
 update_cache()
-prune_cache()
