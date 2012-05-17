@@ -38,13 +38,21 @@ def transcoded_filename(filename):
     return base(filename) + '.ogg'
 
 def munge_m3u(rel_dir, file):
+    src = music_path(rel_dir, file)
+    dst = cache_path(rel_dir, file)
+
+    if (os.path.isfile(dst) and
+            os.stat(dst).st_mtime >= os.stat(src).st_mtime):
+        logging.info('Not re-munging %s' % dst)
+        return
+
     logging.info('Munging playlist %s in %s' % (file, rel_dir))
-    with open(music_path(rel_dir, file), 'r') as f:
+    with open(src, 'r') as f:
         lines = [x.rstrip() for x in f.readlines()]
 
     if any(extension(line) in transcode_formats for line in lines):
         ensure_dir(cache_path(rel_dir))
-        with open(cache_path(rel_dir, file), 'w') as out_f:
+        with open(dst, 'w') as out_f:
             for line in lines:
                 if extension(line) in transcode_formats:
                     logging.info('   Munging %s' % (transcoded_filename(line)))
@@ -59,10 +67,18 @@ def create_m3u(rel_dir, files):
             okay_formats + transcode_formats]
     m3u_filename = '%s %s.m3u' % (zeroes(len(music_files)),
                                   os.path.basename(rel_dir))
-    logging.info('Creating playlist %s in %s' % (m3u_filename, rel_dir))
 
+    src_dir = music_path(rel_dir)
+    m3u_path = cache_path(rel_dir, m3u_filename)
+
+    if (os.path.isfile(m3u_path) and
+            os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
+        logging.info('Not recreating %s' % m3u_path)
+        return
+
+    logging.info('Creating playlist %s in %s' % (m3u_filename, rel_dir))
     ensure_dir(cache_path(rel_dir))
-    with open(cache_path(rel_dir, m3u_filename), 'w') as out_f:
+    with open(m3u_path, 'w') as out_f:
         for music_file in music_files:
             if extension(music_file) in transcode_formats:
                 music_file = transcoded_filename(music_file)
@@ -70,39 +86,75 @@ def create_m3u(rel_dir, files):
             out_f.write('%s\n' % (music_file))
 
 def transcode_flac(rel_dir, file):
-    print 'Transcoding %s' % (os.path.join(rel_dir, file))
     ensure_dir(cache_path(rel_dir))
     flac_path = music_path(rel_dir, file)
     ogg_path = cache_path(rel_dir, transcoded_filename(file))
 
-    with open(os.devnull, 'w') as dev_null:
-        decode_proc = subprocess.Popen([args.flac_bin, '-d', '-c', flac_path],
-                                       stdout=subprocess.PIPE, stderr=dev_null)
-        encode_proc = subprocess.Popen([args.ogg_bin, '-', '-o', ogg_path],
-                                       stdin=decode_proc.stdout,
-                                       stdout=subprocess.PIPE, stderr=dev_null)
-        decode_proc.stdout.close()
-        encode_proc.communicate()
-        # TODO(jleen): Is poll() exactly what we want? Is there a race here if
-        # flac sits around after oggenc terminates?
-        decode_proc.poll()
-    if encode_proc.returncode != 0:
-        raise Exception('Abnormal oggenc termination')
-    if decode_proc.returncode != 0:
-        raise Exception('Abnormal flac termination')
+    if (os.path.isfile(ogg_path) and
+            os.stat(ogg_path).st_mtime >= os.stat(flac_path).st_mtime):
+        logging.info('Not re-transcoding %s' % ogg_path)
+        return
+
+    print 'Transcoding %s' % (os.path.join(rel_dir, file))
+    try:
+        with open(os.devnull, 'w') as dev_null:
+            decode_proc = subprocess.Popen(
+                    [args.flac_bin, '-d', '-c', flac_path],
+                    stdout=subprocess.PIPE, stderr=dev_null)
+            encode_proc = subprocess.Popen(
+                    [args.ogg_bin, '-', '-o', ogg_path],
+                    stdin=decode_proc.stdout,
+                    stdout=subprocess.PIPE, stderr=dev_null)
+            decode_proc.stdout.close()
+            encode_proc.communicate()
+            # TODO(jleen): Is poll() exactly what we want? Is there a race here
+            # if flac sits around after oggenc terminates?
+            decode_proc.poll()
+        if encode_proc.returncode != 0:
+            raise Exception('Abnormal oggenc termination')
+        if decode_proc.returncode != 0:
+            raise Exception('Abnormal flac termination')
+    except:
+        # Remove the (presumably incomplete) Vorbis if we crash during
+        # transcoding.
+        logging.debug('Removing %s' % ogg_path)
+        os.unlink(ogg_path)
+        raise
 
 def create_link(rel_dir, file):
-    logging.info('Linking %s in %s' % (file, rel_dir))
     ensure_dir(cache_path(rel_dir))
-    os.link(music_path(rel_dir, file), cache_path(rel_dir, file))
+    src = music_path(rel_dir, file); dst = cache_path(rel_dir, file)
 
-for dir, dirs, files in os.walk(args.music):
-    assert dir[0:len(args.music)] == args.music
-    rel_dir = dir[1 + len(args.music):]
-    did_music = False; did_playlist = False
-    for file in files:
-        ext = extension(file)
-        if ext == '.m3u': munge_m3u(rel_dir, file); did_playlist = True
-        if ext == '.flac': transcode_flac(rel_dir, file); did_music = True
-        if ext in okay_formats: create_link(rel_dir, file); did_music = True
-    if did_music and not did_playlist: create_m3u(rel_dir, files)
+    if os.path.isfile(dst):
+        # Nothin' to do if src and dst are already hard link buddies.
+        if os.stat(src).st_ino == os.stat(dst).st_ino:
+            logging.info('Not re-linking %s' % dst)
+            return
+        else: os.unlink(dst)
+
+    logging.info('Linking %s in %s' % (file, rel_dir))
+    os.link(src, dst)
+
+def update_cache():
+    """Ensure that everything in the master is reflected in the cache.  Mostly
+    this is done by creating hard links, but FLAC is transcoded to Vorbis."""
+    for dir, dirs, files in os.walk(args.music):
+        assert dir[0:len(args.music)] == args.music
+        rel_dir = dir[1 + len(args.music):]
+        did_music = False; did_playlist = False
+        for file in files:
+            ext = extension(file)
+            if ext == '.m3u': munge_m3u(rel_dir, file); did_playlist = True
+            if ext == '.flac': transcode_flac(rel_dir, file); did_music = True
+            if ext in okay_formats: create_link(rel_dir, file); did_music = True
+        if did_music and not did_playlist: create_m3u(rel_dir, files)
+
+def prune_cache():
+    """Removes files in the cache that have no corresponding file in the
+    master.  Requires -f if removing more than ten files."""
+    # TODO(jleen): Hey, that sounds like a good idea!
+    pass
+
+
+update_cache()
+prune_cache()
