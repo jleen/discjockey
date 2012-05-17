@@ -82,6 +82,7 @@ def munge_m3u(rel_dir, filename):
     else: create_link(rel_dir, filename)
 
 def create_m3u(rel_dir, files):
+    """Creates or updates a playlist, and returns its basename."""
     music_files = [x for x in files if extension(x) in music_formats]
     m3u_filename = '%s %s.m3u' % (zeroes(len(music_files)),
                                   os.path.basename(rel_dir))
@@ -93,7 +94,7 @@ def create_m3u(rel_dir, files):
     if (os.path.isfile(m3u_path) and
             os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
         logging.info('Not recreating %s' % m3u_path)
-        return
+        return m3u_filename
 
     logging.info('Creating playlist %s in %s' % (m3u_filename, rel_dir))
     ensure_dir(cache_path(rel_dir))
@@ -103,6 +104,7 @@ def create_m3u(rel_dir, files):
                 music_file = transcoded_filename(music_file)
             logging.info('   Adding %s' % (music_file))
             out_f.write('%s\n' % (music_file))
+    return m3u_filename
 
 def transcode_flac(rel_dir, filename):
     ensure_dir(cache_path(rel_dir))
@@ -178,7 +180,8 @@ def update_cache():
                 create_link(rel_dir, filename)
                 file_set.add(filename)
             if ext in music_formats: did_music = True
-        if did_music and not did_playlist: create_m3u(rel_dir, files)
+        if did_music and not did_playlist:
+            file_set.add(create_m3u(rel_dir, files))
 
         # Remove files and directories from the cache that aren't in the master.
         dir_set = frozenset(dirs)
