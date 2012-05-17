@@ -4,6 +4,7 @@ import argparse
 import logging
 import math
 import os
+import shutil
 import subprocess
 
 parser = argparse.ArgumentParser()
@@ -37,18 +38,19 @@ def ensure_dir(dirname):
     if not os.path.isdir(dirname): os.makedirs(dirname)
 
 def transcoded_filename(filename):
-    return base(filename) + '.ogg'
+    if extension(filename) in transcode_formats: return base(filename) + '.ogg'
+    else: return filename
 
-def munge_m3u(rel_dir, file):
-    src = music_path(rel_dir, file)
-    dst = cache_path(rel_dir, file)
+def munge_m3u(rel_dir, filename):
+    src = music_path(rel_dir, filename)
+    dst = cache_path(rel_dir, filename)
 
     if (os.path.isfile(dst) and
             os.stat(dst).st_mtime >= os.stat(src).st_mtime):
         logging.info('Not re-munging %s' % dst)
         return
 
-    logging.info('Munging playlist %s in %s' % (file, rel_dir))
+    logging.info('Munging playlist %s in %s' % (filename, rel_dir))
     with open(src, 'r') as f:
         lines = [x.rstrip() for x in f.readlines()]
 
@@ -62,7 +64,7 @@ def munge_m3u(rel_dir, file):
             else:
                 logging.info('   Passing through %s' % (line))
                 out_f.write('%s\n' % (line))
-    else: create_link(rel_dir, file)
+    else: create_link(rel_dir, filename)
 
 def create_m3u(rel_dir, files):
     music_files = [x for x in files if extension(x) in music_formats]
@@ -86,17 +88,17 @@ def create_m3u(rel_dir, files):
             logging.info('   Adding %s' % (music_file))
             out_f.write('%s\n' % (music_file))
 
-def transcode_flac(rel_dir, file):
+def transcode_flac(rel_dir, filename):
     ensure_dir(cache_path(rel_dir))
-    flac_path = music_path(rel_dir, file)
-    ogg_path = cache_path(rel_dir, transcoded_filename(file))
+    flac_path = music_path(rel_dir, filename)
+    ogg_path = cache_path(rel_dir, transcoded_filename(filename))
 
     if (os.path.isfile(ogg_path) and
             os.stat(ogg_path).st_mtime >= os.stat(flac_path).st_mtime):
         logging.info('Not re-transcoding %s' % ogg_path)
         return
 
-    print 'Transcoding %s' % (os.path.join(rel_dir, file))
+    print 'Transcoding %s' % (os.path.join(rel_dir, filename))
     try:
         with open(os.devnull, 'w') as dev_null:
             decode_proc = subprocess.Popen(
@@ -122,9 +124,9 @@ def transcode_flac(rel_dir, file):
         os.unlink(ogg_path)
         raise
 
-def create_link(rel_dir, file):
+def create_link(rel_dir, filename):
     ensure_dir(cache_path(rel_dir))
-    src = music_path(rel_dir, file); dst = cache_path(rel_dir, file)
+    src = music_path(rel_dir, filename); dst = cache_path(rel_dir, filename)
 
     if os.path.isfile(dst):
         # Nothin' to do if src and dst are already hard link buddies.
@@ -133,26 +135,44 @@ def create_link(rel_dir, file):
             return
         else: os.unlink(dst)
 
-    logging.info('Linking %s in %s' % (file, rel_dir))
+    logging.info('Linking %s in %s' % (filename, rel_dir))
     os.link(src, dst)
 
 def update_cache():
     """Ensure that everything in the master is reflected in the cache.  Mostly
     this is done by creating hard links, but FLAC is transcoded to Vorbis."""
-    for dir, dirs, files in os.walk(args.music):
-        assert dir[0:len(args.music)] == args.music
-        rel_dir = dir[1 + len(args.music):]
+    for path, dirs, files in os.walk(args.music):
+        assert path[0:len(args.music)] == args.music
+        rel_dir = path[1 + len(args.music):]
+
+        # Remove files and directories from the cache that aren't in the master.
+        dir_set = frozenset(dirs)
+        # TODO(jleen): Recognize generated playlist filenames.
+        file_set = frozenset(transcoded_filename(f) for f in files)
+        if os.path.isdir(cache_path(rel_dir)):
+            for filename in os.listdir(cache_path(rel_dir)):
+                path = cache_path(rel_dir, filename)
+                if os.path.isfile(path) and filename not in file_set:
+                    logging.info('Removing spurious file %s' % (path))
+                    os.unlink(path)
+                if os.path.isdir(path) and filename not in dir_set:
+                    logging.info('Removing spurious directory %s' % (path))
+                    shutil.rmtree(path)
+
+        # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False
-        for file in files:
-            ext = extension(file)
-            if ext == '.m3u': munge_m3u(rel_dir, file); did_playlist = True
-            if ext == '.flac': transcode_flac(rel_dir, file)
-            if ext in link_extns: create_link(rel_dir, file)
+        for filename in files:
+            ext = extension(filename)
+            if ext == '.m3u': munge_m3u(rel_dir, filename); did_playlist = True
+            if ext == '.flac': transcode_flac(rel_dir, filename)
+            if ext in link_extns: create_link(rel_dir, filename)
             if ext in music_formats: did_music = True
         if did_music and not did_playlist: create_m3u(rel_dir, files)
 
+
+
 def prune_cache():
-    """Removes files in the cache that have no corresponding file in the
+    """Removes files in the cache that have no corresponding filename in the
     master.  Requires -f if removing more than ten files."""
     # TODO(jleen): Hey, that sounds like a good idea!
     pass
