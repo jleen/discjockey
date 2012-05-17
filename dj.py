@@ -9,10 +9,8 @@ import subprocess
 parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR')
 parser.add_argument('--cache', metavar='DIR')
-parser.add_argument('--ogg_bin', metavar='PATH',
-                    default='/opt/local/bin/oggenc')
-parser.add_argument('--flac_bin', metavar='PATH',
-                    default='/opt/local/bin/flac')
+parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
+parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
 parser.add_argument('-v', '--verbose', action='store_true')
 
 args = parser.parse_args()
