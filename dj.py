@@ -23,6 +23,10 @@ logging.basicConfig(level=log_level, format='%(message)s')
 
 transcode_formats = [ '.flac' ]
 okay_formats = [ '.mp3', '.ogg' ]
+misc_extensions = [ '.sync' ]
+
+music_formats = okay_formats + transcode_formats
+link_extns = okay_formats + misc_extensions
 
 def music_path(*pathcomps): return os.path.join(args.music, *pathcomps)
 def cache_path(*pathcomps): return os.path.join(args.cache, *pathcomps)
@@ -63,8 +67,7 @@ def munge_m3u(rel_dir, file):
     else: create_link(rel_dir, file)
 
 def create_m3u(rel_dir, files):
-    music_files = [x for x in files if extension(x) in
-            okay_formats + transcode_formats]
+    music_files = [x for x in files if extension(x) in music_formats]
     m3u_filename = '%s %s.m3u' % (zeroes(len(music_files)),
                                   os.path.basename(rel_dir))
 
@@ -145,8 +148,9 @@ def update_cache():
         for file in files:
             ext = extension(file)
             if ext == '.m3u': munge_m3u(rel_dir, file); did_playlist = True
-            if ext == '.flac': transcode_flac(rel_dir, file); did_music = True
-            if ext in okay_formats: create_link(rel_dir, file); did_music = True
+            if ext == '.flac': transcode_flac(rel_dir, file)
+            if ext in link_extns: create_link(rel_dir, file)
+            if ext in music_formats: did_music = True
         if did_music and not did_playlist: create_m3u(rel_dir, files)
 
 def prune_cache():
