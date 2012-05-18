@@ -14,6 +14,7 @@ parser.add_argument('--cache', metavar='DIR')
 parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
 parser.add_argument('-v', '--verbose', action='store_true')
+parser.add_argument('--force_playlists', action='store_true')
 
 args = parser.parse_args()
 
@@ -92,7 +93,7 @@ def create_m3u(rel_dir, files):
     m3u_path = cache_path(rel_dir, m3u_filename)
 
     nuke_non_file(m3u_path)
-    if (os.path.isfile(m3u_path) and
+    if (not args.force_playlists and os.path.isfile(m3u_path) and
             os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
         logging.info('Not recreating %s' % m3u_path)
         return m3u_filename
@@ -100,6 +101,7 @@ def create_m3u(rel_dir, files):
     logging.info('Creating playlist %s in %s' % (m3u_filename, rel_dir))
     ensure_dir(cache_path(rel_dir))
     with open(m3u_path, 'w') as out_f:
+        music_files.sort()
         for music_file in music_files:
             if extension(music_file) in transcode_formats:
                 music_file = transcoded_filename(music_file)
