@@ -86,6 +86,8 @@ def munge_m3u(rel_dir, filename):
 def create_m3u(rel_dir, files):
     """Creates or updates a playlist, and returns its basename."""
     music_files = [x for x in files if extension(x) in music_formats]
+    # TODO(jleen): Need a trickier heuristic for zeroes, to handle the case
+    # where the music files already have leading zeroes that they don't need.
     m3u_filename = '%s %s.m3u' % (zeroes(len(music_files)),
                                   os.path.basename(rel_dir))
 
