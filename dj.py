@@ -15,6 +15,9 @@ parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
 parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('--force_playlists', action='store_true')
+parser.add_argument('--keep_sigil', metavar='FILENAME', action='append')
+parser.add_argument('--sigil', metavar='FILENAME')
+parser.add_argument('--skip_dir', metavar='DIR', action='append')
 
 args = parser.parse_args()
 
@@ -24,10 +27,9 @@ logging.basicConfig(level=log_level, format='%(message)s')
 
 transcode_formats = [ '.flac' ]
 okay_formats = [ '.mp3', '.ogg' ]
-misc_extensions = [ '.sync' ]
 
 music_formats = okay_formats + transcode_formats
-link_extns = okay_formats + misc_extensions
+link_extns = okay_formats
 
 def music_path(*pathcomps): return os.path.join(args.music, *pathcomps)
 def cache_path(*pathcomps): return os.path.join(args.cache, *pathcomps)
@@ -167,13 +169,21 @@ def create_link(rel_dir, filename):
 def update_cache():
     """Ensure that everything in the master is reflected in the cache.  Mostly
     this is done by creating hard links, but FLAC is transcoded to Vorbis."""
+    sigil_path = None
     for path, dirs, files in os.walk(args.music):
-        assert path[0:len(args.music)] == args.music
+        assert path.startswith(args.music)
         rel_dir = path[1 + len(args.music):]
 
+        # If we're in sigil mode, see if we're crossing a sigil boundary.
+        if args.sigil:
+            if sigil_path and not path.startswith(sigil_path): sigil_path = None
+            if not sigil_path and args.sigil in files: sigil_path = path
+            if not sigil_path: continue
+
         # Trim silly directories.
-        # TODO(jleen): Add a flag for this.
-        if '.AppleDouble' in dirs: dirs.remove('.AppleDouble')
+        if args.skip_dir:
+            for dirname in args.skip_dir:
+                if dirname in dirs: dirs.remove(dirname)
 
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
@@ -186,7 +196,8 @@ def update_cache():
             if ext == '.flac':
                 transcode_flac(rel_dir, filename)
                 file_set.add(transcoded_filename(filename))
-            if ext in link_extns:
+            if ext in link_extns or (args.keep_sigil and
+                                             filename in args.keep_sigil):
                 create_link(rel_dir, filename)
                 file_set.add(filename)
             if ext in music_formats: did_music = True
