@@ -13,7 +13,7 @@ parser.add_argument('--music', metavar='DIR')
 parser.add_argument('--cache', metavar='DIR')
 parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
-parser.add_argument('-v', '--verbose', action='store_true')
+parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('--force_playlists', action='store_true')
 parser.add_argument('--keep_sigil', metavar='FILENAME', action='append')
 parser.add_argument('--sigil', metavar='FILENAME')
@@ -21,7 +21,8 @@ parser.add_argument('--skip_dir', metavar='DIR', action='append')
 
 args = parser.parse_args()
 
-if args.verbose: log_level = logging.INFO
+if args.verbose >= 2: log_level = logging.DEBUG
+elif args.verbose >= 1: log_level = logging.INFO
 else: log_level = logging.WARNING
 logging.basicConfig(level=log_level, format='%(message)s')
 
