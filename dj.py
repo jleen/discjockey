@@ -6,6 +6,7 @@ import math
 import os
 import shutil
 import subprocess
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR')
@@ -118,6 +119,7 @@ def transcode_flac(rel_dir, filename):
         return
 
     print 'Transcoding %s' % (os.path.join(rel_dir, filename))
+    sys.stdout.flush()
     try:
         with open(os.devnull, 'w') as dev_null:
             decode_proc = subprocess.Popen(
@@ -164,6 +166,10 @@ def update_cache():
     for path, dirs, files in os.walk(args.music):
         assert path[0:len(args.music)] == args.music
         rel_dir = path[1 + len(args.music):]
+
+        # Trim silly directories.
+        # TODO(jleen): Add a flag for this.
+        if '.AppleDouble' in dirs: dirs.remove('.AppleDouble')
 
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
