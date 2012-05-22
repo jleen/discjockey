@@ -167,6 +167,15 @@ def create_link(rel_dir, filename):
     logging.info('Linking %s in %s' % (filename, rel_dir))
     os.link(src, dst)
 
+# TODO(jleen): With a bit of work, this could be done in the main loop as part
+# of a single traversal that both pre- and post-visits each directory.
+def contains_sigil(path):
+    """Walk the tree from the given directory and return whether it or a
+    descendant contains a sigil file."""
+    for path, dirs, files in os.walk(path):
+        if args.sigil in files: return True
+    return False
+
 def update_cache():
     """Ensure that everything in the master is reflected in the cache.  Mostly
     this is done by creating hard links, but FLAC is transcoded to Vorbis."""
@@ -179,7 +188,6 @@ def update_cache():
         if args.sigil:
             if sigil_path and not path.startswith(sigil_path): sigil_path = None
             if not sigil_path and args.sigil in files: sigil_path = path
-            if not sigil_path: continue
 
         # Trim silly directories.
         if args.skip_dir:
@@ -188,25 +196,27 @@ def update_cache():
 
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
-        for filename in files:
-            ext = extension(filename)
-            if ext == '.m3u':
-                munge_m3u(rel_dir, filename)
-                file_set.add(filename)
-                did_playlist = True
-            if ext == '.flac':
-                transcode_flac(rel_dir, filename)
-                file_set.add(transcoded_filename(filename))
-            if ext in link_extns or (args.keep_sigil and
-                                             filename in args.keep_sigil):
-                create_link(rel_dir, filename)
-                file_set.add(filename)
-            if ext in music_formats: did_music = True
-        if did_music and not did_playlist:
-            file_set.add(create_m3u(rel_dir, files))
+        if sigil_path or not args.sigil:
+            for filename in files:
+                ext = extension(filename)
+                if ext == '.m3u':
+                    munge_m3u(rel_dir, filename)
+                    file_set.add(filename)
+                    did_playlist = True
+                if ext == '.flac':
+                    transcode_flac(rel_dir, filename)
+                    file_set.add(transcoded_filename(filename))
+                if ext in link_extns or (args.keep_sigil and
+                                                 filename in args.keep_sigil):
+                    create_link(rel_dir, filename)
+                    file_set.add(filename)
+                if ext in music_formats: did_music = True
+            if did_music and not did_playlist:
+                file_set.add(create_m3u(rel_dir, files))
 
         # Remove files and directories from the cache that aren't in the master.
-        dir_set = frozenset(dirs)
+        dir_set = frozenset(d for d in dirs if sigil_path or not args.sigil or
+                                    contains_sigil(os.path.join(path, d)))
         if os.path.isdir(cache_path(rel_dir)):
             for filename in os.listdir(cache_path(rel_dir)):
                 path = cache_path(rel_dir, filename)
