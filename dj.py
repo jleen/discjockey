@@ -176,13 +176,11 @@ def contains_sigil(path):
         if args.sigil in files: return True
     return False
 
-def update_cache():
-    """Ensure that everything in the master is reflected in the cache.  Mostly
-    this is done by creating hard links, but FLAC is transcoded to Vorbis."""
+def walk_path_with_sigil(base):
     sigil_path = None
-    for path, dirs, files in os.walk(args.music):
-        assert path.startswith(args.music)
-        rel_dir = path[1 + len(args.music):]
+    for path, dirs, files in os.walk(base):
+        assert path.startswith(base)
+        rel_dir = path[1 + len(base):]
 
         # If we're in sigil mode, see if we're crossing a sigil boundary.
         if args.sigil:
@@ -194,6 +192,13 @@ def update_cache():
             for dirname in args.skip_dir:
                 if dirname in dirs: dirs.remove(dirname)
 
+        yield rel_dir, dirs, files, sigil_path
+
+def update_cache():
+    """Ensure that everything in the master is reflected in the cache.  Mostly
+    this is done by creating hard links, but FLAC is transcoded to Vorbis."""
+
+    for rel_dir, dirs, files, sigil_path in walk_path_with_sigil(args.music):
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
         if sigil_path or not args.sigil:
@@ -216,7 +221,7 @@ def update_cache():
 
         # Remove files and directories from the cache that aren't in the master.
         dir_set = frozenset(d for d in dirs if sigil_path or not args.sigil or
-                                    contains_sigil(os.path.join(path, d)))
+                                    contains_sigil(music_path(rel_dir, d)))
         if os.path.isdir(cache_path(rel_dir)):
             for filename in os.listdir(cache_path(rel_dir)):
                 path = cache_path(rel_dir, filename)
