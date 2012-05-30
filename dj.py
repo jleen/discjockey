@@ -192,16 +192,56 @@ def walk_path_with_sigil(base):
             for dirname in args.skip_dir:
                 if dirname in dirs: dirs.remove(dirname)
 
-        yield rel_dir, dirs, files, sigil_path
+        in_sigil = sigil_path or not args.sigil
+        yield rel_dir, dirs, files, in_sigil
+
+def find_referents(rel_dir, m3u_filename):
+    m3u = music_path(rel_dir, m3u_filename)
+    referents = []
+
+    with open(m3u, 'r') as f:
+        lines = [x.rstrip() for x in f.readlines()]
+
+    for line in lines:
+        if line.startswith(".."):
+            ref = os.path.normpath(os.path.join(rel_dir, line))
+            assert(not ref.startswith(".."))
+            logging.info('Handling referent %s of %s' % (ref, m3u))
+            (ref_dir, ref_filename) = os.path.split(ref)
+
+            ext = extension(ref_filename)
+            if ext == '.flac':
+                transcode_flac(ref_dir, ref_filename)
+                referents += [os.path.join(ref_dir,
+                                           transcoded_filename(ref_filename))]
+            if ext in okay_formats:
+                create_link(ref_dir, ref_filename)
+                referents += [ref]
+
+    return referents
+
+def contains_referent(rel_dir, leaf_dir, m3u_referents):
+    path = os.path.join(rel_dir, leaf_dir)
+    return any(ref.startswith(path) for ref in m3u_referents)
 
 def update_cache():
     """Ensure that everything in the master is reflected in the cache.  Mostly
     this is done by creating hard links, but FLAC is transcoded to Vorbis."""
 
-    for rel_dir, dirs, files, sigil_path in walk_path_with_sigil(args.music):
+    # First, do all m3u referents.  Need to do this in a preliminary pass,
+    # because the main pass will delete any files it doesn't recognize, and
+    # the files we find here could be anywhere in the tree.
+    m3u_referents = set()
+    for rel_dir, dirs, files, in_sigil in walk_path_with_sigil(args.music):
+        if in_sigil:
+            for filename in files:
+                if extension(filename) == '.m3u':
+                    m3u_referents.update(find_referents(rel_dir, filename))
+
+    for rel_dir, dirs, files, in_sigil in walk_path_with_sigil(args.music):
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
-        if sigil_path or not args.sigil:
+        if in_sigil:
             for filename in files:
                 ext = extension(filename)
                 if ext == '.m3u':
@@ -220,8 +260,9 @@ def update_cache():
                 file_set.add(create_m3u(rel_dir, files))
 
         # Remove files and directories from the cache that aren't in the master.
-        dir_set = frozenset(d for d in dirs if sigil_path or not args.sigil or
-                                    contains_sigil(music_path(rel_dir, d)))
+        dir_set = frozenset(d for d in dirs if in_sigil or
+                                contains_referent(rel_dir, d, m3u_referents) or
+                                contains_sigil(music_path(rel_dir, d)))
         if os.path.isdir(cache_path(rel_dir)):
             for filename in os.listdir(cache_path(rel_dir)):
                 path = cache_path(rel_dir, filename)
@@ -229,7 +270,9 @@ def update_cache():
                     if filename not in dir_set:
                         if os.path.islink(path): remove_spurious_file(path)
                         else: remove_spurious_dir(path)
-                elif filename not in file_set: remove_spurious_file(path)
+                elif (filename not in file_set and
+                          os.path.join(rel_dir, filename) not in m3u_referents):
+                    remove_spurious_file(path)
 
 
 update_cache()
