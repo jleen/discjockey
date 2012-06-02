@@ -100,7 +100,8 @@ def make_playlists(filename):
         tracks = []
         for track in set[1:]:
             tracks.append(track[0])
-        yield (playlist, tracks)
+        playlists.append((playlist, tracks))
+    return playlists
     
 def write_playlists(playlists):
     all_tracks = []
@@ -133,10 +134,6 @@ def rip_and_encode(tracks):
             # TODO(jleen): Clean up whatever we were doing.
             raise
 
-def all_tracks(playlists):
-    for (filename, tracks) in playlists:
-        for track in tracks: yield track
-
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 if (args.create_playlists): write_playlists(playlists)
-if (args.rip): rip_and_encode(all_tracks(playlists))
+if (args.rip): rip_and_encode(playlists[0][1])
