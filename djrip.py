@@ -4,7 +4,6 @@ import argparse
 import logging
 import os
 import subprocess
-import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR')
@@ -115,7 +114,24 @@ def write_playlists(playlists):
 
 def rip_and_encode(tracks):
     for (track_num, track_name) in enumerate(tracks, start=1):
-        print "cdparanoia %d - | flac -s - -o %s" % (track_num, track_name)
+        try:
+            rip_proc = subprocess.Popen(
+                    [args.cdparanoia_bin, '%d' % (track_num), '-'],
+                    stdout=subprocess.PIPE)
+            encode_proc = subprocess.Popen(
+                    [args.flac_bin, '-s', '-', '-o',
+                        os.path.join(args.music, args.album, track_name)],
+                        stdin=rip_proc.stdout, stdout=subprocess.PIPE)
+            rip_proc.stdout.close()
+            encode_proc.communicate()
+            rip_proc.poll()
+            if rip_proc.returncode != 0:
+                raise Exception('Abnormal cdparanoia termination')
+            if encode_proc.returncode != 0:
+                raise Exception('Abnormal flac termination')
+        except:
+            # TODO(jleen): Clean up whatever we were doing.
+            raise
 
 def all_tracks(playlists):
     for (filename, tracks) in playlists:
