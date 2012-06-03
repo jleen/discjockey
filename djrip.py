@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR')
@@ -26,6 +27,8 @@ logging.basicConfig(level=log_level, format='%(message)s')
 
 playlist_extension = '.m3u'
 track_extension = '.flac'
+
+DISC_DELIMITER = '~~~END~OF~LINE~~~'
 
 def make_set_filename(name, num, max_track, max_set):
     return make_track_filename(name, 0, num, max_track, max_set)
@@ -59,7 +62,10 @@ def make_playlists(filename):
     for line in track_list:
         line = line.strip()
 
-        if line.startswith('*'):
+        if line.startswith('~~~'):
+            master_set.append(DISC_DELIMITER)
+
+        elif line.startswith('*'):
             set_name = line[1:].strip()
             set_num += 1
             track_num = 0
@@ -90,17 +96,24 @@ def make_playlists(filename):
         set[0][0] += playlist_extension
 
     for track in sets[0][1:]:
-        (name, num, set_num) = track
-        track[0] = make_track_filename(name, num, set_num, max_track, max_set)
-        track[0] += track_extension
+        if track != DISC_DELIMITER:
+            (name, num, set_num) = track
+            track[0] = make_track_filename(
+                               name, num, set_num, max_track, max_set)
+            track[0] += track_extension
 
     playlists = []
+    is_master = True
     for set in sets:
         playlist = set[0][0]
         tracks = []
         for track in set[1:]:
-            tracks.append(track[0])
-        playlists.append((playlist, tracks))
+            if track == DISC_DELIMITER:
+                if is_master: tracks.append(DISC_DELIMITER)
+            else: tracks.append(track[0])
+            playlists.append((playlist, tracks))
+        is_master = False
+
     return playlists
     
 def write_playlists(playlists):
@@ -110,29 +123,56 @@ def write_playlists(playlists):
     for (filename, tracks) in playlists:
         f = open(os.path.join(args.music, args.album, filename), 'w')
         for track in tracks:
-            f.write(track + '\n');
+            if track != DISC_DELIMITER: f.write(track + '\n');
         f.close
 
+def divide_tracks_by_disc(tracks):
+    track_sets = []
+    current_tracks = []
+    for track in tracks:
+        if track == DISC_DELIMITER:
+            track_sets.append(current_tracks)
+            current_tracks = []
+        else: current_tracks.append(track)
+    track_sets.append(current_tracks)
+    return track_sets
+
 def rip_and_encode(tracks):
-    for (track_num, track_name) in enumerate(tracks, start=1):
-        try:
-            rip_proc = subprocess.Popen(
-                    [args.cdparanoia_bin, '%d' % (track_num), '-'],
-                    stdout=subprocess.PIPE)
-            encode_proc = subprocess.Popen(
-                    [args.flac_bin, '-s', '-', '-o',
-                        os.path.join(args.music, args.album, track_name)],
-                        stdin=rip_proc.stdout, stdout=subprocess.PIPE)
-            rip_proc.stdout.close()
-            encode_proc.communicate()
-            rip_proc.poll()
-            if rip_proc.returncode != 0:
-                raise Exception('Abnormal cdparanoia termination')
-            if encode_proc.returncode != 0:
-                raise Exception('Abnormal flac termination')
-        except:
-            # TODO(jleen): Clean up whatever we were doing.
-            raise
+    first_disc = True
+    for disc_tracks in divide_tracks_by_disc(tracks):
+        if not first_disc:
+            subprocess.check_output(["/usr/bin/drutil", "eject"])
+            print "--- Insert next disc and hit Enter ---"
+            sys.stdin.readline()
+        first_disc = False
+
+        # TODO(jleen): zomg platform-specific!
+        subprocess.check_output(["/usr/sbin/diskutil", "unmount", "/dev/disk2"])
+        discid = subprocess.check_output(
+                         ["/opt/local/bin/cd-discid", "/dev/disk2"])
+        num_tracks = int(discid.split(' ')[1])
+        if num_tracks != len(disc_tracks):
+            raise Exception('Playlist length does not match disc length')
+
+        for (track_num, track_name) in enumerate(disc_tracks, start=1):
+            try:
+                rip_proc = subprocess.Popen(
+                        [args.cdparanoia_bin, '%d' % (track_num), '-'],
+                        stdout=subprocess.PIPE)
+                encode_proc = subprocess.Popen(
+                        [args.flac_bin, '-s', '-', '-o',
+                            os.path.join(args.music, args.album, track_name)],
+                            stdin=rip_proc.stdout, stdout=subprocess.PIPE)
+                rip_proc.stdout.close()
+                encode_proc.communicate()
+                rip_proc.poll()
+                if rip_proc.returncode != 0:
+                    raise Exception('Abnormal cdparanoia termination')
+                if encode_proc.returncode != 0:
+                    raise Exception('Abnormal flac termination')
+            except:
+                # TODO(jleen): Clean up whatever we were doing.
+                raise
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 if (args.create_playlists): write_playlists(playlists)
