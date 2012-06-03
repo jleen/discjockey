@@ -13,6 +13,9 @@ parser.add_argument('--album', metavar='ALBUM')
 parser.add_argument('--cdparanoia_bin', metavar='PATH',
                     default='/usr/bin/cdparanoia')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
+parser.add_argument('--umount_cmd', metavar='CMD')
+parser.add_argument('--discid_cmd', metavar='CMD', default='/usr/bin/cd-discid')
+parser.add_argument('--eject_cmd', metavar='CMD', default='/usr/bin/eject')
 parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('--nocreate_playlists', dest='create_playlists',
                     action='store_false')
@@ -141,15 +144,13 @@ def rip_and_encode(tracks):
     first_disc = True
     for disc_tracks in divide_tracks_by_disc(tracks):
         if not first_disc:
-            subprocess.check_output(["/usr/bin/drutil", "eject"])
             print "--- Insert next disc and hit Enter ---"
             sys.stdin.readline()
         first_disc = False
 
-        # TODO(jleen): zomg platform-specific!
-        subprocess.check_output(["/usr/sbin/diskutil", "unmount", "/dev/disk2"])
-        discid = subprocess.check_output(
-                         ["/opt/local/bin/cd-discid", "/dev/disk2"])
+        if (args.umount_cmd):
+            subprocess.check_output(args.umount_cmd.split(' '))
+        discid = subprocess.check_output(args.discid_cmd.split(' '))
         num_tracks = int(discid.split(' ')[1])
         if num_tracks != len(disc_tracks):
             raise Exception('Playlist length does not match disc length')
@@ -171,8 +172,11 @@ def rip_and_encode(tracks):
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
             except:
-                # TODO(jleen): Clean up whatever we were doing.
+                # TODO(jleen): Clean up whatever we were doing. Kill any
+                # subprocesses that might still be around.
                 raise
+
+        subprocess.check_output(args.eject_cmd.split(' '))
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 if (args.create_playlists): write_playlists(playlists)
