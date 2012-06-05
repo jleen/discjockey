@@ -20,6 +20,7 @@ parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('--nocreate_playlists', dest='create_playlists',
                     action='store_false')
 parser.add_argument('--norip', dest='rip', action='store_false')
+parser.add_argument('--first_disc', metavar='N', type=int, default=1)
 
 args = parser.parse_args()
 
@@ -142,7 +143,7 @@ def divide_tracks_by_disc(tracks):
 
 def rip_and_encode(tracks):
     first_disc = True
-    for disc_tracks in divide_tracks_by_disc(tracks):
+    for disc_tracks in divide_tracks_by_disc(tracks)[args.first_disc-1:]:
         if not first_disc:
             print "--- Insert next disc and hit Enter ---"
             sys.stdin.readline()
@@ -153,7 +154,8 @@ def rip_and_encode(tracks):
         discid = subprocess.check_output(args.discid_cmd.split(' '))
         num_tracks = int(discid.split(' ')[1])
         if num_tracks != len(disc_tracks):
-            raise Exception('Playlist length does not match disc length')
+            raise Exception('Playlist length %d does not match disc length %d'
+                            % (len(disc_tracks), num_tracks))
 
         for (track_num, track_name) in enumerate(disc_tracks, start=1):
             try:
