@@ -20,6 +20,7 @@ parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('--nocreate_playlists', dest='create_playlists',
                     action='store_false')
 parser.add_argument('--norip', dest='rip', action='store_false')
+parser.add_argument('--rename', action='store_true')
 parser.add_argument('--first_disc', metavar='N', type=int, default=1)
 
 args = parser.parse_args()
@@ -123,9 +124,15 @@ def make_playlists(filename):
 def write_playlists(playlists):
     all_tracks = []
 
-    os.makedirs(os.path.join(args.music, args.album))
+    if not args.rename: os.makedirs(os.path.join(args.music, args.album))
     for (filename, tracks) in playlists:
-        f = open(os.path.join(args.music, args.album, filename), 'w')
+        path = os.path.join(args.music, args.album, filename)
+        if args.rename:
+            if not os.path.exists(path):
+                raise Exception('Trying to regenerate %s, ' +
+                                'but it doesn\'t exist' % (path))
+            os.remove(path)
+        f = open(path, 'w')
         for track in tracks:
             if track != DISC_DELIMITER: f.write(track + '\n');
         f.close
@@ -141,6 +148,23 @@ def divide_tracks_by_disc(tracks):
     track_sets.append(current_tracks)
     return track_sets
 
+def rename_files(tracks):
+    tracks = [track for track in tracks if track != DISC_DELIMITER]
+    path = os.path.join(args.music, args.album)
+    files = [f for f in os.listdir(path) if f.endswith(track_extension)]
+    if len(files) != len(tracks):
+        raise Exception('Album has %d tracks but directory has %d files' %
+                            (len(tracks), len(files)))
+    files.sort()
+
+    for (old_name, new_name) in zip(files, tracks):
+        if old_name != new_name:
+            if os.path.exists(os.path.join(path, new_name)):
+                raise Exception('Trying to rename %d to already-existing %d' %
+                                    (old_name, new_name))
+            os.rename(os.path.join(path, old_name),
+                      os.path.join(path, new_name))
+    
 def rip_and_encode(tracks):
     first_disc = True
     for disc_tracks in divide_tracks_by_disc(tracks)[args.first_disc-1:]:
@@ -182,4 +206,6 @@ def rip_and_encode(tracks):
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 if (args.create_playlists): write_playlists(playlists)
-if (args.rip): rip_and_encode(playlists[0][1])
+
+if (args.rename): rename_files(playlists[0][1])
+elif (args.rip): rip_and_encode(playlists[0][1])
