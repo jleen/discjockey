@@ -80,10 +80,10 @@ def munge_m3u(rel_dir, filename):
             for line in lines:
                 if extension(line) in transcode_formats:
                     logging.info('   Munging %s' % (transcoded_filename(line)))
-                out_f.write('%s\n' % (transcoded_filename(line)))
-            else:
-                logging.info('   Passing through %s' % (line))
-                out_f.write('%s\n' % (line))
+                    out_f.write('%s\n' % (transcoded_filename(line)))
+                else:
+                    logging.info('   Passing through %s' % (line))
+                    out_f.write('%s\n' % (line))
     else: create_link(rel_dir, filename)
 
 def create_m3u(rel_dir, files):
@@ -133,7 +133,7 @@ def transcode_flac(rel_dir, filename):
                     [args.flac_bin, '-d', '-c', flac_path],
                     stdout=subprocess.PIPE, stderr=dev_null)
             encode_proc = subprocess.Popen(
-                    [args.ogg_bin, '-', '-o', ogg_path],
+                    [args.ogg_bin, '-', '-q', '6', '-o', ogg_path],
                     stdin=decode_proc.stdout,
                     stdout=subprocess.PIPE, stderr=dev_null)
             decode_proc.stdout.close()
@@ -242,6 +242,7 @@ def update_cache():
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
         if in_sigil:
+            files.sort()
             for filename in files:
                 ext = extension(filename)
                 if ext == '.m3u':
