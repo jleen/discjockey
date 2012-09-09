@@ -278,20 +278,20 @@ def update_cache():
         if in_sigil:
             files.sort()
             for filename in files:
-                if filename.startswith('.'): continue
                 ext = extension(filename)
-                if ext == '.m3u':
-                    munge_m3u(rel_dir, filename)
-                    file_set.add(filename)
-                    did_playlist = True
-                if ext == '.flac':
-                    transcode_flac(rel_dir, filename)
-                    file_set.add(transcoded_filename(filename))
-                if ext == '.wav':
-                    transcode_wav(rel_dir, filename)
-                    file_set.add(transcoded_filename(filename))
-                if ext in link_extns or (args.keep_sigil and
-                                                 filename in args.keep_sigil):
+                if not filename.startswith('.'):
+                    if ext == '.m3u':
+                        munge_m3u(rel_dir, filename)
+                        file_set.add(filename)
+                        did_playlist = True
+                    if ext == '.flac':
+                        transcode_flac(rel_dir, filename)
+                        file_set.add(transcoded_filename(filename))
+                    if ext == '.wav':
+                        transcode_wav(rel_dir, filename)
+                        file_set.add(transcoded_filename(filename))
+                if ((ext in link_extns and not filename.startswith('.'))
+                    or (args.keep_sigil and filename in args.keep_sigil)):
                     create_link(rel_dir, filename)
                     file_set.add(filename)
                 if ext in music_formats: did_music = True
