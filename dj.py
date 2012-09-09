@@ -160,7 +160,7 @@ def transcode_wav(rel_dir, filename):
 
     nuke_non_file(ogg_path)
     if (os.path.isfile(ogg_path) and
-            os.stat(ogg_path).st_mtime >= os.stat(flac_path).st_mtime):
+            os.stat(ogg_path).st_mtime >= os.stat(wav_path).st_mtime):
         logging.info('Not re-transcoding %s' % ogg_path)
         return
 
@@ -278,6 +278,7 @@ def update_cache():
         if in_sigil:
             files.sort()
             for filename in files:
+                if filename.startswith('.'): continue
                 ext = extension(filename)
                 if ext == '.m3u':
                     munge_m3u(rel_dir, filename)
