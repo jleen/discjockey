@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import platform
 import subprocess
 import sys
 
@@ -174,7 +175,8 @@ def rip_and_encode(tracks):
         first_disc = False
 
         if (args.umount_cmd):
-            subprocess.check_output(args.umount_cmd.split(' '))
+            with open(os.devnull, 'w') as dev_null:
+                subprocess.call(args.umount_cmd.split(' '), stdout=dev_null)
         discid = subprocess.check_output(args.discid_cmd.split(' '))
         num_tracks = int(discid.split(' ')[1])
         if num_tracks != len(disc_tracks):
@@ -203,6 +205,10 @@ def rip_and_encode(tracks):
                 raise
 
         subprocess.check_output(args.eject_cmd.split(' '))
+
+if platform.system() == 'Darwin':
+    import pmset
+    pmset.prevent_idle_sleep('Disc Jockey Rip')
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 if (args.create_playlists): write_playlists(playlists)
