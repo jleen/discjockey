@@ -22,6 +22,7 @@ parser.add_argument('--nocreate_playlists', dest='create_playlists',
                     action='store_false')
 parser.add_argument('--norip', dest='rip', action='store_false')
 parser.add_argument('--rename', action='store_true')
+parser.add_argument('-f', '--allow_wrong_length', action='store_true')
 parser.add_argument('--first_disc', metavar='N', type=int, default=1)
 
 args = parser.parse_args()
@@ -130,8 +131,8 @@ def write_playlists(playlists):
         path = os.path.join(args.music, args.album, filename)
         if args.rename:
             if not os.path.exists(path):
-                raise Exception('Trying to regenerate %s, ' +
-                                'but it doesn\'t exist' % (path))
+                raise Exception(('Trying to regenerate %s, ' +
+                                'but it doesn\'t exist') % (path))
             os.remove(path)
         f = open(path, 'w')
         for track in tracks:
@@ -179,7 +180,7 @@ def rip_and_encode(tracks):
                 subprocess.call(args.umount_cmd.split(' '), stdout=dev_null)
         discid = subprocess.check_output(args.discid_cmd.split(' '))
         num_tracks = int(discid.split(' ')[1])
-        if num_tracks != len(disc_tracks):
+        if not args.allow_wrong_length and num_tracks != len(disc_tracks):
             raise Exception('Playlist length %d does not match disc length %d'
                             % (len(disc_tracks), num_tracks))
 
