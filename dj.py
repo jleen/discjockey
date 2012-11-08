@@ -26,7 +26,7 @@ elif args.verbose >= 1: log_level = logging.INFO
 else: log_level = logging.WARNING
 logging.basicConfig(level=log_level, format='%(message)s')
 
-transcode_formats = [ '.flac' ]
+transcode_formats = [ '.flac', '.wav' ]
 okay_formats = [ '.mp3', '.ogg' ]
 
 music_formats = okay_formats + transcode_formats
@@ -80,10 +80,10 @@ def munge_m3u(rel_dir, filename):
             for line in lines:
                 if extension(line) in transcode_formats:
                     logging.info('   Munging %s' % (transcoded_filename(line)))
-                out_f.write('%s\n' % (transcoded_filename(line)))
-            else:
-                logging.info('   Passing through %s' % (line))
-                out_f.write('%s\n' % (line))
+                    out_f.write('%s\n' % (transcoded_filename(line)))
+                else:
+                    logging.info('   Passing through %s' % (line))
+                    out_f.write('%s\n' % (line))
     else: create_link(rel_dir, filename)
 
 def create_m3u(rel_dir, files):
@@ -133,7 +133,7 @@ def transcode_flac(rel_dir, filename):
                     [args.flac_bin, '-d', '-c', flac_path],
                     stdout=subprocess.PIPE, stderr=dev_null)
             encode_proc = subprocess.Popen(
-                    [args.ogg_bin, '-', '-o', ogg_path],
+                    [args.ogg_bin, '-', '-q', '6', '-o', ogg_path],
                     stdin=decode_proc.stdout,
                     stdout=subprocess.PIPE, stderr=dev_null)
             decode_proc.stdout.close()
@@ -145,6 +145,35 @@ def transcode_flac(rel_dir, filename):
             raise Exception('Abnormal oggenc termination')
         if decode_proc.returncode != 0:
             raise Exception('Abnormal flac termination')
+    except:
+        # Remove the (presumably incomplete) Vorbis if we crash during
+        # transcoding.
+        logging.debug('Removing %s' % ogg_path)
+        os.unlink(ogg_path)
+        raise
+
+# TODO(jleen): Refactor this and the previous function.
+def transcode_wav(rel_dir, filename):
+    ensure_dir(cache_path(rel_dir))
+    wav_path = music_path(rel_dir, filename)
+    ogg_path = cache_path(rel_dir, transcoded_filename(filename))
+
+    nuke_non_file(ogg_path)
+    if (os.path.isfile(ogg_path) and
+            os.stat(ogg_path).st_mtime >= os.stat(wav_path).st_mtime):
+        logging.info('Not re-transcoding %s' % ogg_path)
+        return
+
+    print 'Transcoding %s' % (os.path.join(rel_dir, filename))
+    sys.stdout.flush()
+    try:
+        with open(os.devnull, 'w') as dev_null:
+            encode_proc = subprocess.Popen(
+                    [args.ogg_bin, wav_path, '-q', '6', '-o', ogg_path],
+                    stdout=subprocess.PIPE, stderr=dev_null)
+            encode_proc.communicate()
+        if encode_proc.returncode != 0:
+            raise Exception('Abnormal oggenc termination')
     except:
         # Remove the (presumably incomplete) Vorbis if we crash during
         # transcoding.
@@ -202,6 +231,7 @@ def find_referents(rel_dir, m3u_filename):
     with open(m3u, 'r') as f:
         lines = [x.rstrip() for x in f.readlines()]
 
+    # TODO(jleen): Unify this with the eerily similar loop in update_cache.
     for line in lines:
         if line.startswith(".."):
             ref = os.path.normpath(os.path.join(rel_dir, line))
@@ -212,6 +242,10 @@ def find_referents(rel_dir, m3u_filename):
             ext = extension(ref_filename)
             if ext == '.flac':
                 transcode_flac(ref_dir, ref_filename)
+                referents += [os.path.join(ref_dir,
+                                           transcoded_filename(ref_filename))]
+            if ext == '.wav':
+                transcode_wav(ref_dir, ref_filename)
                 referents += [os.path.join(ref_dir,
                                            transcoded_filename(ref_filename))]
             if ext in okay_formats:
@@ -242,17 +276,22 @@ def update_cache():
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
         if in_sigil:
+            files.sort()
             for filename in files:
                 ext = extension(filename)
-                if ext == '.m3u':
-                    munge_m3u(rel_dir, filename)
-                    file_set.add(filename)
-                    did_playlist = True
-                if ext == '.flac':
-                    transcode_flac(rel_dir, filename)
-                    file_set.add(transcoded_filename(filename))
-                if ext in link_extns or (args.keep_sigil and
-                                                 filename in args.keep_sigil):
+                if not filename.startswith('.'):
+                    if ext == '.m3u':
+                        munge_m3u(rel_dir, filename)
+                        file_set.add(filename)
+                        did_playlist = True
+                    if ext == '.flac':
+                        transcode_flac(rel_dir, filename)
+                        file_set.add(transcoded_filename(filename))
+                    if ext == '.wav':
+                        transcode_wav(rel_dir, filename)
+                        file_set.add(transcoded_filename(filename))
+                if ((ext in link_extns and not filename.startswith('.'))
+                    or (args.keep_sigil and filename in args.keep_sigil)):
                     create_link(rel_dir, filename)
                     file_set.add(filename)
                 if ext in music_formats: did_music = True
