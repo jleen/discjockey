@@ -36,6 +36,7 @@ playlist_extension = '.m3u'
 track_extension = '.flac'
 
 DISC_DELIMITER = '~~~END~OF~LINE~~~'
+SKIPPED_TRACK = '~~~NOTHING~TO~SEE~HERE~~~'
 
 def make_set_filename(name, num, max_track, max_set):
     return make_track_filename(name, 0, num, max_track, max_set)
@@ -50,6 +51,10 @@ def make_track_filename(name, track_num, set_num, max_track, max_set):
         return fmt % (set_num, track_num, name)
 
 def make_playlists(filename):
+    """Given the path to an album spec, returns a data structure containing all
+    the playlists to generate, including the master playlist containing all
+    tracks."""
+
     f = open(filename, 'r')
     track_list = f.readlines()
     f.close()
@@ -66,11 +71,17 @@ def make_playlists(filename):
 
     current_set = None
 
+    # Generate an array of all track data.  Each entry is either DISC_DELIMITER
+    # or a list [name, track number within its set, set number].  Also generate
+    # a separate array (in the same format) for each individual sub-playlist.
     for line in track_list:
         line = line.strip()
 
         if line.startswith('~~~'):
             master_set.append(DISC_DELIMITER)
+
+        if line.startswith('---'):
+            master_set.append(SKIPPED_TRACK)
 
         elif line.startswith('*'):
             set_name = line[1:].strip()
@@ -97,32 +108,42 @@ def make_playlists(filename):
 
     max_set = set_num
 
+    # Generate a filename for each playlist.
     for set in sets:
         (name, num) = set[0]
         set[0][0] = make_set_filename(name, num, max_track, max_set)
         set[0][0] += playlist_extension
 
+    # Generate a filename for each track by combining its set and track number
+    # with its name.  After this point, track[0] is the only meaningful member
+    # of the track array.
     for track in sets[0][1:]:
-        if track != DISC_DELIMITER:
+        if not is_metatrack(track):
             (name, num, set_num) = track
             track[0] = make_track_filename(
                                name, num, set_num, max_track, max_set)
             track[0] += track_extension
 
+    # Generate the data structure to return.  It is an array of playlists,
+    # where each playlist is a tuple whose first element is the playlist
+    # filename and whose second element is an array of track filenames.
     playlists = []
     is_master = True
     for set in sets:
         playlist = set[0][0]
         tracks = []
         for track in set[1:]:
-            if track == DISC_DELIMITER:
-                if is_master: tracks.append(DISC_DELIMITER)
+            if is_metatrack(track):
+                if is_master: tracks.append(track)
             else: tracks.append(track[0])
             playlists.append((playlist, tracks))
         is_master = False
 
     return playlists
     
+def is_metatrack(track_name):
+    return track_name == DISC_DELIMITER or track_name == SKIPPED_TRACK
+
 def write_playlists(playlists):
     all_tracks = []
 
@@ -136,7 +157,7 @@ def write_playlists(playlists):
             os.remove(path)
         f = open(path, 'w')
         for track in tracks:
-            if track != DISC_DELIMITER: f.write(track + '\n');
+            if not is_metatrack(track): f.write(track + '\n');
         f.close
 
 def divide_tracks_by_disc(tracks):
@@ -151,7 +172,7 @@ def divide_tracks_by_disc(tracks):
     return track_sets
 
 def rename_files(tracks):
-    tracks = [track for track in tracks if track != DISC_DELIMITER]
+    tracks = [track for track in tracks if not is_metatrack(track)]
     path = os.path.join(args.music, args.album)
     files = [f for f in os.listdir(path) if f.endswith(track_extension)]
     if len(files) != len(tracks):
@@ -185,6 +206,8 @@ def rip_and_encode(tracks):
                             % (len(disc_tracks), num_tracks))
 
         for (track_num, track_name) in enumerate(disc_tracks, start=1):
+            if track_name == SKIPPED_TRACK: continue
+
             try:
                 rip_proc = subprocess.Popen(
                         [args.cdparanoia_bin, '%d' % (track_num), '-'],
