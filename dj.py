@@ -31,13 +31,16 @@ elif args.verbose >= 1: log_level = logging.INFO
 else: log_level = logging.WARNING
 logging.basicConfig(level=log_level, format='%(message)s')
 
+lossless_formats = [ '.flac', '.wav' ]
+boring_formats = [ '.mp3', '.m4a', '.wma' ]
+
 if args.mp3:
-    transcode_formats = [ '.flac', '.wav', '.ogg' ]
-    okay_formats = [ '.mp3', ]
+    transcode_formats = lossless_formats + [ '.ogg' ]
+    okay_formats = boring_formats
     output_format = '.mp3'
 else:
-    transcode_formats = [ '.flac', '.wav' ]
-    okay_formats = [ '.mp3', '.ogg' ]
+    transcode_formats = lossless_formats
+    okay_formats = boring_formats + [ '.ogg' ]
     output_format = '.ogg'
 
 music_formats = okay_formats + transcode_formats
@@ -128,7 +131,8 @@ def create_m3u(rel_dir, files):
     return m3u_filename
 
 flac_header_re = re.compile('.+: FLAC audio bitstream data, ' +
-                            '(16|24) bit, stereo, (44\.1|48) kHz, \d+ samples')
+                            '(16|24) bit, (mono|stereo), (44\.1|48) kHz, ' +
+                            '\d+ samples')
 ogg_header_re = re.compile('.+: Ogg data, Vorbis audio, (mono|stereo), ' +
                            '(11025|22050|37800|44100|48000)')
 
@@ -136,11 +140,16 @@ def flac_header(path):
     magic = subprocess.check_output([args.file_bin, path]).rstrip()
     m = flac_header_re.match(magic)
 
-    if   m.group(2) == '44.1': frequency = '44100'
-    elif m.group(2) == '48'  : frequency = '48000'
+    if   m.group(2) == 'mono'  : channels = '1'
+    elif m.group(2) == 'stereo': channels = '2'
     else: assert False
 
-    return { 'channels': '2', 'frequency': frequency, 'bitwidth': m.group(1) }
+    if   m.group(3) == '44.1': frequency = '44100'
+    elif m.group(3) == '48'  : frequency = '48000'
+    else: assert False
+
+    return { 'channels': channels, 'frequency': frequency,
+             'bitwidth': m.group(1) }
 
 def ogg_header(path):
     magic = subprocess.check_output([args.file_bin, path]).rstrip()
