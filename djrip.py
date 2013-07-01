@@ -80,7 +80,7 @@ def make_playlists(filename):
         if line.startswith('~~~'):
             master_set.append(DISC_DELIMITER)
 
-        if line.startswith('---'):
+        elif line.startswith('---'):
             master_set.append(SKIPPED_TRACK)
 
         elif line.startswith('*'):
