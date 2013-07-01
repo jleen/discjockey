@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR')
 parser.add_argument('--cache', metavar='DIR')
 parser.add_argument('--mp3', action='store_true')
+parser.add_argument('--mirror', action='store_true')
 parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
 parser.add_argument('--oggdec_bin', metavar='PATH', default='/usr/bin/oggdec')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
@@ -35,9 +36,14 @@ lossless_formats = [ '.flac', '.wav' ]
 boring_formats = [ '.mp3', '.m4a', '.wma' ]
 
 if args.mp3:
+    if args.mirror: raise Exception("Can't have both --mirror and --mp3")
     transcode_formats = lossless_formats + [ '.ogg' ]
     okay_formats = boring_formats
     output_format = '.mp3'
+elif args.mirror:
+    transcode_formats = []
+    okay_formats = boring_formats + lossless_formats + [ '.ogg' ]
+    output_format = None
 else:
     transcode_formats = lossless_formats
     okay_formats = boring_formats + [ '.ogg' ]
