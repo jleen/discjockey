@@ -1,4 +1,4 @@
-# Copyright (c) 2012 John Leen
+# Copyright (c) 2013 John Leen
 
 import argparse
 import logging
@@ -220,12 +220,12 @@ def rip_and_encode(tracks):
             if track_name == SKIPPED_TRACK: continue
 
             try:
+                output_file = os.path.join(args.music, args.album, track_name)
                 rip_proc = subprocess.Popen(
                         [args.cdparanoia_bin, '%d' % (track_num), '-'],
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
-                        [args.flac_bin, '-s', '-', '-o',
-                            os.path.join(args.music, args.album, track_name)],
+                        [args.flac_bin, '-s', '-', '-o', output_file],
                             stdin=rip_proc.stdout, stdout=subprocess.PIPE)
                 rip_proc.stdout.close()
                 encode_proc.communicate()
@@ -235,8 +235,9 @@ def rip_and_encode(tracks):
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
             except:
-                # TODO(jleen): Clean up whatever we were doing. Kill any
-                # subprocesses that might still be around.
+                encode_proc.terminate()
+                rip_proc.terminate()
+                os.remove(output_file)
                 raise
 
         subprocess.check_output(args.eject_cmd.split(' '))
