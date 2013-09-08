@@ -50,6 +50,17 @@ def make_track_filename(name, track_num, set_num, max_track, max_set):
         fmt = '%0' + slen + 'd.%0' + tlen + 'd %s'
         return fmt % (set_num, track_num, name)
 
+def sanitize_filename(filename):
+    """Given a candidate filename, replace all bad characters with wholesome
+    characters."""
+
+    filename = filename.replace('"', "'")
+    filename = filename.replace('/', ' - ')
+    filename = filename.replace(':', ' -')
+    filename = filename.replace('?', '~')
+
+    return filename
+
 def make_playlists(filename):
     """Given the path to an album spec, returns a data structure containing all
     the playlists to generate, including the master playlist containing all
@@ -95,7 +106,7 @@ def make_playlists(filename):
             current_set = None
 
         else:
-            track_name = line
+            track_name = sanitize_filename(line)
             if current_set == None:
                 track_num = 0
                 set_num += 1
