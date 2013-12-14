@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--music', metavar='DIR')
+parser.add_argument('--music', metavar='DIR', action='append')
 parser.add_argument('--cache', metavar='DIR')
 parser.add_argument('--mp3', action='store_true')
 parser.add_argument('--mirror', action='store_true')
@@ -52,7 +52,6 @@ else:
 music_formats = okay_formats + transcode_formats
 link_extns = okay_formats
 
-def music_path(*pathcomps): return os.path.join(args.music, *pathcomps)
 def cache_path(*pathcomps): return os.path.join(args.cache, *pathcomps)
 
 def base(filename): return os.path.splitext(filename)[0]
@@ -82,8 +81,8 @@ def transcoded_filename(filename):
     else:
         return filename
 
-def munge_m3u(rel_dir, filename):
-    src = music_path(rel_dir, filename)
+def munge_m3u(music_path, rel_dir, filename):
+    src = os.path.join(music_path, rel_dir, filename)
     dst = cache_path(rel_dir, filename)
 
     nuke_non_file(dst)
@@ -106,9 +105,9 @@ def munge_m3u(rel_dir, filename):
                 else:
                     logging.info('   Passing through %s' % (line))
                     out_f.write('%s\n' % (line))
-    else: create_link(rel_dir, filename)
+    else: create_link(music_path, rel_dir, filename)
 
-def create_m3u(rel_dir, files):
+def create_m3u(music_path, rel_dir, files):
     """Creates or updates a playlist, and returns its basename."""
     music_files = [x for x in files if extension(x) in music_formats]
     # TODO(jleen): Need a trickier heuristic for zeroes, to handle the case
@@ -116,7 +115,7 @@ def create_m3u(rel_dir, files):
     m3u_filename = '%s %s.m3u' % (zeroes(len(music_files)),
                                   os.path.basename(rel_dir))
 
-    src_dir = music_path(rel_dir)
+    src_dir = os.path.join(music_path, rel_dir)
     m3u_path = cache_path(rel_dir, m3u_filename)
 
     nuke_non_file(m3u_path)
@@ -167,9 +166,9 @@ def ogg_header(path):
 
     return { 'channels': channels, 'frequency': m.group(2), 'bitwidth': '16' }
 
-def pipe_transcode(rel_dir, filename, in_format):
+def pipe_transcode(music_path, rel_dir, filename, in_format):
     ensure_dir(cache_path(rel_dir))
-    in_path = music_path(rel_dir, filename)
+    in_path = os.path.join(music_path, rel_dir, filename)
     out_path = cache_path(rel_dir, transcoded_filename(filename))
 
     nuke_non_file(out_path)
@@ -252,14 +251,16 @@ def pipe_transcode(rel_dir, filename, in_format):
         os.unlink(out_path)
         raise
 
-def transcode_flac(rel_dir, filename): pipe_transcode(rel_dir, filename, 'flac')
+def transcode_flac(music_path, rel_dir, filename):
+    pipe_transcode(music_path, rel_dir, filename, 'flac')
 
-def transcode_ogg(rel_dir, filename): pipe_transcode(rel_dir, filename, 'ogg')
+def transcode_ogg(music_path, rel_dir, filename):
+    pipe_transcode(music_path, rel_dir, filename, 'ogg')
 
 # TODO(jleen): Refactor this and pipe_transcode.
-def transcode_wav(rel_dir, filename):
+def transcode_wav(music_path, rel_dir, filename):
     ensure_dir(cache_path(rel_dir))
-    wav_path = music_path(rel_dir, filename)
+    wav_path = os.path.join(music_path, rel_dir, filename)
     out_path = cache_path(rel_dir, transcoded_filename(filename))
 
     nuke_non_file(out_path)
@@ -291,9 +292,10 @@ def transcode_wav(rel_dir, filename):
         os.unlink(out_path)
         raise
 
-def create_link(rel_dir, filename):
+def create_link(music_path, rel_dir, filename):
     ensure_dir(cache_path(rel_dir))
-    src = music_path(rel_dir, filename); dst = cache_path(rel_dir, filename)
+    src = os.path.join(music_path, rel_dir, filename)
+    dst = cache_path(rel_dir, filename)
 
     nuke_non_file(dst)
     if os.path.isfile(dst):
@@ -315,16 +317,21 @@ def contains_sigil(path):
         if args.sigil in files: return True
     return False
 
-def walk_path_with_sigil(base):
+# Takes a list of base directories and walks them as a single merged hierarchy.
+def walk_path_with_sigil(bases):
+    [base] = bases
     sigil_path = None
     for path, dirs, files in os.walk(base):
         assert path.startswith(base)
         rel_dir = path[1 + len(base):]
 
         # If we're in sigil mode, see if we're crossing a sigil boundary.
+        # TODO(jleen): This is going to be fun in merge mode.
         if args.sigil:
-            if sigil_path and not path.startswith(sigil_path): sigil_path = None
-            if not sigil_path and args.sigil in files: sigil_path = path
+            if sigil_path and not path.startswith(sigil_path):
+                sigil_path = None
+            if not sigil_path and args.sigil in files:
+                sigil_path = path
 
         # Trim silly directories.
         if args.skip_dir:
@@ -332,10 +339,10 @@ def walk_path_with_sigil(base):
                 if dirname in dirs: dirs.remove(dirname)
 
         in_sigil = sigil_path or not args.sigil
-        yield rel_dir, dirs, files, in_sigil
+        yield base, rel_dir, dirs, files, in_sigil
 
-def find_referents(rel_dir, m3u_filename):
-    m3u = music_path(rel_dir, m3u_filename)
+def find_referents(music_path, rel_dir, m3u_filename):
+    m3u = os.path.join(music_path, rel_dir, m3u_filename)
     referents = []
 
     with open(m3u, 'r') as f:
@@ -353,19 +360,19 @@ def find_referents(rel_dir, m3u_filename):
             ext = extension(ref_filename)
             if ext in transcode_formats:
                 if ext == '.flac':
-                    transcode_flac(ref_dir, ref_filename)
+                    transcode_flac(music_path, ref_dir, ref_filename)
                     referents += [os.path.join(
                             ref_dir, transcoded_filename(ref_filename))]
                 if ext == '.ogg':
-                    transcode_ogg(ref_dir, ref_filename)
+                    transcode_ogg(music_path, ref_dir, ref_filename)
                     referents += [os.path.join(
                             ref_dir, transcoded_filename(ref_filename))]
                 if ext == '.wav':
-                    transcode_wav(ref_dir, ref_filename)
+                    transcode_wav(music_path, ref_dir, ref_filename)
                     referents += [os.path.join(
                             ref_dir, transcoded_filename(ref_filename))]
             if ext in okay_formats:
-                create_link(ref_dir, ref_filename)
+                create_link(music_path, ref_dir, ref_filename)
                 referents += [ref]
 
     return referents
@@ -382,13 +389,16 @@ def update_cache():
     # because the main pass will delete any files it doesn't recognize, and
     # the files we find here could be anywhere in the tree.
     m3u_referents = set()
-    for rel_dir, dirs, files, in_sigil in walk_path_with_sigil(args.music):
+    for music_path, rel_dir, dirs, files, in_sigil in walk_path_with_sigil(
+            args.music):
         if in_sigil:
             for filename in files:
                 if extension(filename) == '.m3u':
-                    m3u_referents.update(find_referents(rel_dir, filename))
+                    m3u_referents.update(
+                            find_referents(music_path, rel_dir, filename))
 
-    for rel_dir, dirs, files, in_sigil in walk_path_with_sigil(args.music):
+    for music_path, rel_dir, dirs, files, in_sigil in walk_path_with_sigil(
+            args.music):
         # Build cache files that are missing or outdated.
         did_music = False; did_playlist = False; file_set = set()
         if in_sigil:
@@ -397,31 +407,32 @@ def update_cache():
                 ext = extension(filename)
                 if not filename.startswith('.'):
                     if ext == '.m3u':
-                        munge_m3u(rel_dir, filename)
+                        munge_m3u(music_path, rel_dir, filename)
                         file_set.add(filename)
                         did_playlist = True
                     if ext in transcode_formats:
                         if ext == '.flac':
-                            transcode_flac(rel_dir, filename)
+                            transcode_flac(music_path, rel_dir, filename)
                             file_set.add(transcoded_filename(filename))
                         if ext == '.ogg':
-                            transcode_ogg(rel_dir, filename)
+                            transcode_ogg(music_path, rel_dir, filename)
                             file_set.add(transcoded_filename(filename))
                         if ext == '.wav':
-                            transcode_wav(rel_dir, filename)
+                            transcode_wav(music_path, rel_dir, filename)
                             file_set.add(transcoded_filename(filename))
                 if ((ext in link_extns and not filename.startswith('.'))
                     or (args.keep_sigil and filename in args.keep_sigil)):
-                    create_link(rel_dir, filename)
+                    create_link(music_path, rel_dir, filename)
                     file_set.add(filename)
                 if ext in music_formats: did_music = True
             if did_music and not did_playlist:
-                file_set.add(create_m3u(rel_dir, files))
+                file_set.add(create_m3u(music_path, rel_dir, files))
 
         # Remove files and directories from the cache that aren't in the master.
         dir_set = frozenset(d for d in dirs if in_sigil or
                                 contains_referent(rel_dir, d, m3u_referents) or
-                                contains_sigil(music_path(rel_dir, d)))
+                                any(contains_sigil(os.path.join(m, rel_dir, d))
+                                        for m in args.music))
         if os.path.isdir(cache_path(rel_dir)):
             for filename in os.listdir(cache_path(rel_dir)):
                 path = cache_path(rel_dir, filename)

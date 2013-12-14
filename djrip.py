@@ -95,7 +95,7 @@ def make_playlists(filename):
             master_set.append(SKIPPED_TRACK)
 
         elif line.startswith('*'):
-            set_name = line[1:].strip()
+            set_name = sanitize_filename(line[1:].strip())
             set_num += 1
             track_num = 0
             current_set = [ [set_name, set_num] ]
