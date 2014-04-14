@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR', action='append')
 parser.add_argument('--cache', metavar='DIR')
 parser.add_argument('--mp3', action='store_true')
+parser.add_argument('--ogg_quality', type=int, default=5)
 parser.add_argument('--mirror', action='store_true')
 parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
 parser.add_argument('--oggdec_bin', metavar='PATH', default='/usr/bin/oggdec')
@@ -226,7 +227,7 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
                 encode_proc = subprocess.Popen(
                         [args.ogg_bin,
                          '-r',
-                         '-q', '6',
+                         '-q', str(args.ogg_quality),
                          '-B', header_data['bitwidth'],
                          '-C', header_data['channels'],
                          '-R', header_data['frequency'],
