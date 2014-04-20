@@ -1,4 +1,4 @@
-# Copyright (c) 2012 John Leen
+# Copyright (c) 2012-2014 John Leen
 
 import argparse
 import logging
