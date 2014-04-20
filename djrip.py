@@ -195,7 +195,7 @@ def rename_files(tracks):
     for (old_name, new_name) in zip(files, tracks):
         if old_name != new_name:
             if os.path.exists(os.path.join(path, new_name)):
-                raise Exception('Trying to rename %d to already-existing %d' %
+                raise Exception('Trying to rename %s to already-existing %s' %
                                     (old_name, new_name))
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
