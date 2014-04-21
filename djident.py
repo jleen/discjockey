@@ -79,5 +79,4 @@ trackTree = album.findall('TRACK')
 for track in trackTree:
     tracks.append(urllib.unquote(track.findall('TITLE')[0].text))
 
-print 'Rock/%s/%s' % (artist, title)
 for track in tracks: print track
