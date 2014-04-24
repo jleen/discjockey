@@ -79,4 +79,4 @@ trackTree = album.findall('TRACK')
 for track in trackTree:
     tracks.append(urllib.unquote(track.findall('TITLE')[0].text))
 
-for track in tracks: print track
+for track in tracks: print track.encode('utf-8')
