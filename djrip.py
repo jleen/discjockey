@@ -6,6 +6,7 @@ import os
 import platform
 import subprocess
 import sys
+import unicodedata
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--music', metavar='DIR')
@@ -162,11 +163,7 @@ def write_playlists(playlists):
     if not args.rename: os.makedirs(os.path.join(args.music, args.album))
     for (filename, tracks) in playlists:
         path = os.path.join(args.music, args.album, filename)
-        if args.rename:
-            if not os.path.exists(path):
-                raise Exception(('Trying to regenerate %s, ' +
-                                'but it doesn\'t exist') % (path))
-            os.remove(path)
+        if args.rename and os.path.exists(path): os.remove(path)
         f = open(path, 'w')
         for track in tracks:
             if not is_metatrack(track): f.write(track + '\n');
@@ -193,7 +190,11 @@ def rename_files(tracks):
     files.sort()
 
     for (old_name, new_name) in zip(files, tracks):
-        if old_name != new_name:
+        # Don't try to rename a file if the old and new names are Unicode
+        # equivalents, because OS X canonicalizes Unicode filenames.
+        old_name_nfc = unicodedata.normalize('NFC', old_name.decode('utf-8'))
+        new_name_nfc = unicodedata.normalize('NFC', new_name.decode('utf-8'))
+        if old_name_nfc != new_name_nfc:
             if os.path.exists(os.path.join(path, new_name)):
                 raise Exception('Trying to rename %s to already-existing %s' %
                                     (old_name, new_name))
