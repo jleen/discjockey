@@ -4,6 +4,7 @@ import argparse
 import json
 import platform
 import subprocess
+import sys
 import urllib
 import urllib2
 from xml.etree import ElementTree
@@ -31,6 +32,9 @@ if platform.system() == 'Darwin':
             toc += str(last_start) + ' '
         elif line[16:25] == 'trackSize':
             last_length = int(line[27:])
+        elif line.startswith('  Please insert a disc to get track info.'):
+            print "You don't seem to have given me a disc."
+            sys.exit(1)
     # drutil doesn't report the leadout, but Gracenote needs it for ID.
     toc += str(last_start + last_length) + ' '
 else:
@@ -68,7 +72,13 @@ responseText = responseObj.read()
 responseTree = ElementTree.fromstring(responseText)
 response = responseTree.find('RESPONSE')
 
-if response.attrib['STATUS'] != 'OK': raise 'uh oh'
+status = response.attrib['STATUS']
+if status != 'OK':
+    print "Gracenote couldn't find that disc."
+    print
+    print "Queried for %s" % toc
+    print "Got response %s" % status
+    sys.exit(2)
 
 album = response.find('ALBUM')
 artist = urllib.unquote(album.findall('ARTIST')[0].text)
