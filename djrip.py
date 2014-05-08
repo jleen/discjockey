@@ -201,8 +201,22 @@ def rename_files(tracks):
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
     
+# TODO(jleen): This is an abomination.  We should pass this down rather than
+# recontructing it.
+def dissect_track_name(track_name):
+    delim_index = track_name.find(' ')
+    return track_name[delim_index + 1 :-5]
+
+# TODO(jleen): This is an even greater abomination.  We should have metadata
+# or something.
+def dissect_track_path(track_path):
+    comps = track_path.split(os.path.sep)
+    return (comps[0], comps[-2], comps[-1])
+
 def rip_and_encode(tracks):
+
     first_disc = True
+    linear_num = 1
     for disc_tracks in divide_tracks_by_disc(tracks)[args.first_disc-1:]:
         if not first_disc:
             print "--- Insert next disc and hit Enter ---"
@@ -221,13 +235,20 @@ def rip_and_encode(tracks):
         for (track_num, track_name) in enumerate(disc_tracks, start=1):
             if track_name == SKIPPED_TRACK: continue
 
+            output_file = os.path.join(args.music, args.album, track_name)
+            title = dissect_track_name(track_name)
+            (genre, artist, album) = dissect_track_path(args.album)
             try:
-                output_file = os.path.join(args.music, args.album, track_name)
                 rip_proc = subprocess.Popen(
                         [args.cdparanoia_bin, '%d' % (track_num), '-'],
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
-                        [args.flac_bin, '-s', '-', '-o', output_file],
+                        [args.flac_bin, '-s', '-', '-o', output_file,
+                         '-T', 'TITLE=%s' % (title),
+                         '-T', 'ALBUM=%s' % (album),
+                         '-T', 'ARTIST=%s' % (artist),
+                         '-T', 'GENRE=%s' % (genre),
+                         '-T', 'TRACKNUMBER=%d' % (linear_num)],
                             stdin=rip_proc.stdout, stdout=subprocess.PIPE)
                 rip_proc.stdout.close()
                 encode_proc.communicate()
@@ -241,6 +262,7 @@ def rip_and_encode(tracks):
                 rip_proc.terminate()
                 os.remove(output_file)
                 raise
+            linear_num += 1
 
         subprocess.check_output(args.eject_cmd.split(' '))
 

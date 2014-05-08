@@ -17,9 +17,12 @@ parser.add_argument('--ogg_quality', type=int, default=5)
 parser.add_argument('--mirror', action='store_true')
 parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
 parser.add_argument('--oggdec_bin', metavar='PATH', default='/usr/bin/oggdec')
+parser.add_argument('--ogginfo_bin', metavar='PATH', default='/usr/bin/ogginfo')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
 parser.add_argument('--lame_bin', metavar='PATH', default='/usr/bin/lame')
 parser.add_argument('--file_bin', metavar='PATH', default='/usr/bin/file')
+parser.add_argument('--metaflac_bin', metavar='PATH',
+                        default='/usr/bin/metaflac')
 parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('--force_playlists', action='store_true')
 parser.add_argument('--keep_sigil', metavar='FILENAME', action='append')
@@ -141,6 +144,8 @@ flac_header_re = re.compile('.+: FLAC audio bitstream data, ' +
                             '\d+ samples')
 ogg_header_re = re.compile('.+: Ogg data, Vorbis audio, (mono|stereo), ' +
                            '(11025|22050|37800|44100|48000)')
+flac_meta_re = re.compile('(GENRE|ARTIST|ALBUM|TITLE|TRACKNUMBER)=(.*)')
+ogg_meta_re = re.compile('(genre|artist|album|title|tracknumber)=(.*)')
 
 def flac_header(path):
     magic = subprocess.check_output([args.file_bin, path]).rstrip()
@@ -148,14 +153,26 @@ def flac_header(path):
 
     if   m.group(2) == 'mono'  : channels = '1'
     elif m.group(2) == 'stereo': channels = '2'
-    else: assert False
+    else: assert False, "Can't parse flac channel magic"
 
     if   m.group(3) == '44.1': frequency = '44100'
     elif m.group(3) == '48'  : frequency = '48000'
-    else: assert False
+    else: assert False, "Can't parse flac frequency magic"
 
-    return { 'channels': channels, 'frequency': frequency,
-             'bitwidth': m.group(1) }
+    header_fields = { 'channels': channels, 'frequency': frequency,
+                      'bitwidth': m.group(1) }
+
+    meta = subprocess.check_output([args.metaflac_bin,
+                                    '--show-tag=GENRE',
+                                    '--show-tag=ARTIST',
+                                    '--show-tag=ALBUM',
+                                    '--show-tag=TITLE',
+                                    '--show-tag=TRACKNUMBER',
+                                    path])
+    for (key, val) in flac_meta_re.findall(meta):
+        header_fields[key.lower()] = val
+
+    return header_fields
 
 def ogg_header(path):
     magic = subprocess.check_output([args.file_bin, path]).rstrip()
@@ -163,9 +180,31 @@ def ogg_header(path):
 
     if   m.group(1) == 'mono'  : channels = '1'
     elif m.group(1) == 'stereo': channels = '2'
-    else: assert False
+    else: assert False, "Can't parse ogg channel magic"
 
-    return { 'channels': channels, 'frequency': m.group(2), 'bitwidth': '16' }
+    header_fields = { 'channels': channels, 'frequency': m.group(2),
+                      'bitwidth': '16' }
+
+    meta = subprocess.channels([args.ogginfo_bin, path])
+    for (key, val) in ogg_meta_re.findall(meta): header_fields[key] = val
+
+ogg_flags = { 'genre': '-G',
+              'artist': '-a',
+              'album': '-l',
+              'title': '-t',
+              'tracknumber': '-N' }
+
+mp3_flags = { 'genre': '--tg',
+              'artist': '--ta',
+              'album': '--tl',
+              'title': '--tt',
+              'tracknumber': '--tn' }
+
+def header_to_flags(header_data, flag_set):
+    flags = []
+    for (key, val) in header_data.items():
+        if key in flag_set: flags += [ flag_set[key], val ]
+    return flags
 
 def pipe_transcode(music_path, rel_dir, filename, in_format):
     ensure_dir(cache_path(rel_dir))
@@ -212,6 +251,7 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
                 elif header_data['frequency'] == '48000': frequency = '48'
                 else: assert False
 
+                meta_flags = header_to_flags(header_data, mp3_flags)
                 encode_proc = subprocess.Popen(
                         [args.lame_bin,
                          '--quiet',
@@ -219,18 +259,19 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
                          '-r', '--little-endian',
                          '--bitwidth', header_data['bitwidth'],
                          '-s', frequency,
-                         '-m', channels,
+                         '-m', channels] + meta_flags + [
                          '-', out_path],
                         stdin=decode_proc.stdout,
                         stdout=subprocess.PIPE, stderr=dev_null)
             else:
+                meta_flags = header_to_flags(header_data, ogg_flags)
                 encode_proc = subprocess.Popen(
                         [args.ogg_bin,
                          '-r',
                          '-q', str(args.ogg_quality),
                          '-B', header_data['bitwidth'],
                          '-C', header_data['channels'],
-                         '-R', header_data['frequency'],
+                         '-R', header_data['frequency']] + meta_flags + [
                          '-o', out_path, '-'],
                         stdin=decode_proc.stdout,
                         stdout=subprocess.PIPE, stderr=dev_null)
