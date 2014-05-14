@@ -15,6 +15,8 @@ parser.add_argument('--album', metavar='ALBUM')
 parser.add_argument('--cdparanoia_bin', metavar='PATH',
                     default='/usr/bin/cdparanoia')
 parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
+parser.add_argument('--metaflac_bin', metavar='PATH',
+                        default='/usr/bin/metaflac')
 parser.add_argument('--umount_cmd', metavar='CMD')
 parser.add_argument('--discid_cmd', metavar='CMD', default='/usr/bin/cd-discid')
 parser.add_argument('--eject_cmd', metavar='CMD', default='/usr/bin/eject')
@@ -84,6 +86,9 @@ def make_playlists(filename):
 
     current_set = None
 
+    # Get some default metadata from the album pathname.
+    (genre, artist, album) = dissect_track_path(args.album)
+
     # Generate an array of all track data.  Each entry is either DISC_DELIMITER
     # or a list [name, track number within its set, set number].  Also generate
     # a separate array (in the same format) for each individual sub-playlist.
@@ -103,6 +108,12 @@ def make_playlists(filename):
             current_set = [ [set_name, set_num] ]
             sets.append(current_set)
 
+        elif line.startswith('~'):
+            [code, value] = line.split(' ', 1)
+            if code == '~g': genre = value
+            if code == '~a': album = value
+            if code == '~r': artist = value
+
         elif line == "":
             set_name = None
             current_set = None
@@ -115,7 +126,16 @@ def make_playlists(filename):
             else:
                 track_num += 1
                 max_track = max(max_track, track_num)
-            track = [track_name, track_num, set_num]
+
+            track = {
+                'track_name': track_name,
+                'track_num': track_num,
+                'set_num': set_num,
+                'genre': genre,
+                'artist': artist,
+                'album': album,
+                'title': line
+                }
             master_set.append(track)
             if current_set != None: current_set.append(track)
 
@@ -128,18 +148,16 @@ def make_playlists(filename):
         set[0][0] += playlist_extension
 
     # Generate a filename for each track by combining its set and track number
-    # with its name.  After this point, track[0] is the only meaningful member
-    # of the track array.
+    # with its name.
     for track in sets[0][1:]:
         if not is_metatrack(track):
-            (name, num, set_num) = track
-            track[0] = make_track_filename(
-                               name, num, set_num, max_track, max_set)
-            track[0] += track_extension
+            track['filename'] = make_track_filename(
+                    track['track_name'], track['track_num'],
+                    track['set_num'], max_track, max_set) + track_extension
 
     # Generate the data structure to return.  It is an array of playlists,
     # where each playlist is a tuple whose first element is the playlist
-    # filename and whose second element is an array of track filenames.
+    # filename and whose second element is an array of track dicts.
     playlists = []
     is_master = True
     for set in sets:
@@ -148,7 +166,7 @@ def make_playlists(filename):
         for track in set[1:]:
             if is_metatrack(track):
                 if is_master: tracks.append(track)
-            else: tracks.append(track[0])
+            else: tracks.append(track)
             playlists.append((playlist, tracks))
         is_master = False
 
@@ -166,7 +184,7 @@ def write_playlists(playlists):
         if args.rename and os.path.exists(path): os.remove(path)
         f = open(path, 'w')
         for track in tracks:
-            if not is_metatrack(track): f.write(track + '\n');
+            if not is_metatrack(track): f.write(track['filename'] + '\n');
         f.close
 
 def divide_tracks_by_disc(tracks):
@@ -189,7 +207,8 @@ def rename_files(tracks):
                             (len(tracks), len(files)))
     files.sort()
 
-    for (old_name, new_name) in zip(files, tracks):
+    for (linear_num, (old_name, track)) in enumerate(zip(files, tracks), 1):
+        new_name = track['filename']
         # Don't try to rename a file if the old and new names are Unicode
         # equivalents, because OS X canonicalizes Unicode filenames.
         old_name_nfc = unicodedata.normalize('NFC', old_name.decode('utf-8'))
@@ -200,15 +219,16 @@ def rename_files(tracks):
                                     (old_name, new_name))
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
+        subprocess.check_output([
+                args.metaflac_bin,
+                '--set-tag=GENRE=%s' % track['genre'],
+                '--set-tag=ARTIST=%s' % track['artist'],
+                '--set-tag=ALBUM=%s' % track['album'],
+                '--set-tag=TITLE=%s' % track['title'],
+                '--set-tag=TRACKNUMBER=%d' % linear_num,
+                os.path.join(path, new_name)])
+            
     
-# TODO(jleen): This is an abomination.  We should pass this down rather than
-# recontructing it.
-def dissect_track_name(track_name):
-    delim_index = track_name.find(' ')
-    return track_name[delim_index + 1 :-5]
-
-# TODO(jleen): This is an even greater abomination.  We should have metadata
-# or something.
 def dissect_track_path(track_path):
     comps = track_path.split(os.path.sep)
     return (comps[0], comps[-2], comps[-1])
@@ -232,22 +252,21 @@ def rip_and_encode(tracks):
             raise Exception('Playlist length %d does not match disc length %d'
                             % (len(disc_tracks), num_tracks))
 
-        for (track_num, track_name) in enumerate(disc_tracks, start=1):
+        for (track_num, track) in enumerate(disc_tracks, start=1):
+            track_name = track['track_name']
             if track_name == SKIPPED_TRACK: continue
 
             output_file = os.path.join(args.music, args.album, track_name)
-            title = dissect_track_name(track_name)
-            (genre, artist, album) = dissect_track_path(args.album)
             try:
                 rip_proc = subprocess.Popen(
                         [args.cdparanoia_bin, '%d' % (track_num), '-'],
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
                         [args.flac_bin, '-s', '-', '-o', output_file,
-                         '-T', 'TITLE=%s' % (title),
-                         '-T', 'ALBUM=%s' % (album),
-                         '-T', 'ARTIST=%s' % (artist),
-                         '-T', 'GENRE=%s' % (genre),
+                         '-T', 'TITLE=%s' % (track['title']),
+                         '-T', 'ALBUM=%s' % (track['album']),
+                         '-T', 'ARTIST=%s' % (track['artist']),
+                         '-T', 'GENRE=%s' % (track['genre']),
                          '-T', 'TRACKNUMBER=%d' % (linear_num)],
                             stdin=rip_proc.stdout, stdout=subprocess.PIPE)
                 rip_proc.stdout.close()
