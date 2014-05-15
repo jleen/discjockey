@@ -18,9 +18,11 @@ args = parser.parse_args()
 # Read the CD TOC
 
 if platform.system() == 'Darwin':
-    p = subprocess.Popen(['drutil', 'trackinfo'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(['drutil', 'trackinfo'],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 else:
-    p = subprocess.Popen(['/usr/bin/cdrecord', '-toc'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(['/usr/bin/cdrecord', '-toc'],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 out, err = p.communicate()
 
 
@@ -83,10 +85,15 @@ if status != 'OK':
 album = response.find('ALBUM')
 artist = urllib.unquote(album.findall('ARTIST')[0].text)
 title = urllib.unquote(album.findall('TITLE')[0].text)
+genre = urllib.unquote(album.findall('GENRE')[0].text)
 
 tracks = []
 trackTree = album.findall('TRACK')
 for track in trackTree:
     tracks.append(urllib.unquote(track.findall('TITLE')[0].text))
 
+print '~g %s' % genre
+print '~r %s' % artist
+print '~a %s' % title
+print
 for track in tracks: print track.encode('utf-8')

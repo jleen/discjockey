@@ -256,7 +256,8 @@ def rip_and_encode(tracks):
             track_name = track['track_name']
             if track_name == SKIPPED_TRACK: continue
 
-            output_file = os.path.join(args.music, args.album, track_name)
+            output_file = os.path.join(args.music, args.album,
+                                       track['filename'])
             try:
                 rip_proc = subprocess.Popen(
                         [args.cdparanoia_bin, '%d' % (track_num), '-'],
