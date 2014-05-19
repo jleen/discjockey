@@ -253,8 +253,8 @@ def rip_and_encode(tracks):
                             % (len(disc_tracks), num_tracks))
 
         for (track_num, track) in enumerate(disc_tracks, start=1):
+            if track == SKIPPED_TRACK: continue
             track_name = track['track_name']
-            if track_name == SKIPPED_TRACK: continue
 
             output_file = os.path.join(args.music, args.album,
                                        track['filename'])
