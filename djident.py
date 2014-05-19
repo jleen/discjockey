@@ -12,6 +12,7 @@ from xml.etree import ElementTree
 parser = argparse.ArgumentParser()
 parser.add_argument('--client')
 parser.add_argument('--user')
+parser.add_argument('--nometa', action='store_true')
 args = parser.parse_args()
 
 
@@ -92,8 +93,9 @@ trackTree = album.findall('TRACK')
 for track in trackTree:
     tracks.append(urllib.unquote(track.findall('TITLE')[0].text))
 
-print '~g %s' % genre
-print '~r %s' % artist
-print '~a %s' % title
-print
+if not args.nometa:
+    print '~g %s' % genre.encode('utf-8')
+    print '~r %s' % artist.encode('utf-8')
+    print '~a %s' % title.encode('utf-8')
+    print
 for track in tracks: print track.encode('utf-8')
