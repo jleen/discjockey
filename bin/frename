@@ -1,0 +1,32 @@
+#!/usr/bin/env zsh
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+PYTHON=${DJ_PYTHON:-python}
+MUSIC=${DJ_MUSIC:-~/music}
+CATALOG=${DJ_CATALOG:-~/catalog}
+
+MORE_ARGS=()
+
+if [[ `uname` == Darwin ]]; then
+    if [[ -n $DJ_AFP_CATALOG ]]; then
+        host=`echo $DJ_AFP_CATALOG | cut -d: -f1`
+        share=`echo $DJ_AFP_CATALOG | cut -d: -f2`
+        dir=`echo $DJ_AFP_CATALOG | cut -d: -f3`
+        mount=`mount | grep $host | grep $share | cut -d' ' -f3`
+        CATALOG=$mount/$dir
+    fi
+    if [[ -n $DJ_AFP_MUSIC ]]; then
+        host=`echo $DJ_AFP_MUSIC | cut -d: -f1`
+        share=`echo $DJ_AFP_MUSIC | cut -d: -f2`
+        dir=`echo $DJ_AFP_MUSIC | cut -d: -f3`
+        mount=`mount | grep $host | grep $share | cut -d' ' -f3`
+        MUSIC=$mount/$dir
+    fi
+fi
+
+$PYTHON ${0%/*}/../py/djrip.py \
+    --rename \
+    --album="$1" \
+    --catalog="$CATALOG" \
+    --music="$MUSIC"
