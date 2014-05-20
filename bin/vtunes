@@ -1,0 +1,35 @@
+#!/usr/bin/env zsh
+
+if [[ `uname` != Darwin ]]; then
+    echo "This is only implemented on OS X for now." > /dev/stderr
+    exit 2
+fi
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+unset src dest
+for spec in $DJ_SYNC; do
+    device=`echo $spec | cut -d= -f1`
+    if mount | grep -q $device; then
+        dest=`mount | grep $device | perl -pe 's/.* on (.*) \(.*/$1/'`
+        src=`echo $spec | cut -d= -f1`
+    fi
+done
+
+if [[ -z $src ]]; then
+    echo "No sync target is attached." > /dev/stderr
+    exit 1
+fi
+
+time_hack=$((3600 * 8 + 2))  # max(PST, PDT) + FAT slop
+
+# Source for --iconv hack:
+#   http://lists.samba.org/archive/rsync/2008-August/021564.html
+
+rsync -vrtz \
+    --delete-before \
+    --modify-window=$time_hack \
+    --exclude=.AppleDouble \
+    --exclude=.Spotlight-V100 \
+    --iconv=UTF8-MAC,UTF-8 \
+    $src/ $dest
