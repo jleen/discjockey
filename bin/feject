@@ -1,0 +1,13 @@
+#!/usr/bin/env zsh
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+if [[ `uname` == Darwin ]]; then
+    CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
+    EJECT='/usr/bin/drutil eject'
+else
+    CDROM=${DJ_CDROM:-/dev/cdrom}
+    EJECT=${DJ_EJECT:-"eject $CDROM"}
+fi
+
+$EJECT $CDROM
