@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
 
+[[ -f ~/.dj ]] && . ~/.dj
+
 PYTHON=${DJ_PYTHON:-python}
 MUSIC=${DJ_MUSIC:-~/music}
 CATALOG=${DJ_CATALOG:-~/catalog}
@@ -14,7 +16,7 @@ if [[ `uname` == Darwin ]]; then
     CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
     EJECT='/usr/bin/drutil eject'
 else
-    CDROM=/dev/cdrom
+    CDROM=${DJ_CDROM:-/dev/cdrom}
     EJECT=${DJ_EJECT:-"eject $CDROM"}
 fi
     
@@ -23,18 +25,18 @@ if [ "$1" = "-f" ]; then
     shift
 fi
 
-if [ "$2" == "m3u" ]; then
+if [[ $2 == "m3u" ]]; then
     MORE_ARGS="$MORE_ARGS --rename"
-elif [ -n "$2" ]; then
+elif [[ -n $2 ]]; then
     MORE_ARGS="$MORE_ARGS --nocreate_playlists --first_disc $2"
 fi
 
 $PYTHON ${0%/*}/../py/djrip.py \
     --album="$1" \
-    --catalog "$CATALOG" \
-    --music "$MUSIC" \
+    --catalog="$CATALOG" \
+    --music="$MUSIC" \
     --eject_cmd=$EJECT \
     --discid_cmd="cd-discid $CDROM" \
     --cdparanoia_bin=cdparanoia \
     --flac_bin=flac \
-    $MORE_ARGS
+    $=MORE_ARGS
