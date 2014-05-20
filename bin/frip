@@ -9,10 +9,19 @@ CATALOG=${DJ_CATALOG:-~/catalog}
 MORE_ARGS=()
 
 if [[ `uname` == Darwin ]]; then
-    if [[ -n DJ_AFP_HOST ]]; then
-        MOUNT=`mount | grep $DJ_AFP_HOST | grep $DJ_AFP_SHARE | cut -d' ' -f3`
-        CATALOG=$MOUNT/$DJ_AFP_CATALOG
-        MUSIC=$MOUNT/$DJ_AFP_MUSIC
+    if [[ -n $DJ_AFP_CATALOG ]]; then
+        host=`echo $DJ_AFP_CATALOG | cut -d: -f1`
+        share=`echo $DJ_AFP_CATALOG | cut -d: -f2`
+        dir=`echo $DJ_AFP_CATALOG | cut -d: -f3`
+        mount=`mount | grep $host | grep $share | cut -d' ' -f3`
+        CATALOG=$mount/$dir
+    fi
+    if [[ -n $DJ_AFP_MUSIC ]]; then
+        host=`echo $DJ_AFP_MUSIC | cut -d: -f1`
+        share=`echo $DJ_AFP_MUSIC | cut -d: -f2`
+        dir=`echo $DJ_AFP_MUSIC | cut -d: -f3`
+        mount=`mount | grep $host | grep $share | cut -d' ' -f3`
+        MUSIC=$mount/$dir
     fi
     CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
     EJECT='/usr/bin/drutil eject'
