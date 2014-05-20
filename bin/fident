@@ -1,0 +1,33 @@
+#!/bin/zsh
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+DOIT="${0%/*}/../py/djident.py --client DJ_GRACENOTE_CLIENT --user DJ_GRACENOTE_USER"
+
+if [[ -n $2 ]]; then
+    discs=$2
+else
+    discs=1
+fi
+
+while [[ $(( discs -= 1 )) -ge 0 ]]; do
+    if [[ -n $1 ]]; then
+        mkdir -p "`dirname $1`"
+        if [[ -n $subsequent ]]; then
+            eval $DOIT | tee -a $1
+        else
+            eval $DOIT | tee $1
+        fi
+    else
+        eval $DOIT
+    fi
+    if [[ $discs -ge 1 ]]; then
+        echo '~~~'
+        echo "Insert next disc and press enter"
+        read whatever
+        if [[ -n $1 ]]; then
+            echo '~~~' >> $1
+            subsequent=1
+        fi
+    fi
+done
