@@ -4,6 +4,11 @@
 
 DOIT="python ${0%/*}/../py/djident.py --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER"
 
+if [[ $1 == "-x" ]]; then
+    DOIT="$DOIT --nometa"
+    shift
+fi
+
 if [[ -n $2 ]]; then
     discs=$2
 else
