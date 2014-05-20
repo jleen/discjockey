@@ -1,0 +1,40 @@
+#!/usr/bin/env zsh
+
+PYTHON=${DJ_PYTHON:-python}
+MUSIC=${DJ_MUSIC:-~/music}
+CATALOG=${DJ_CATALOG:-~/catalog}
+
+MORE_ARGS=
+
+if [[ `uname` == Darwin ]]; then
+    if [[ -n DJ_AFP_HOST ]]; then
+        MOUNT=`mount | grep $$DJ_AFP_HOST | grep $DJ_AFP_SHARE | cut -d' ' -f3`
+        CATALOG=$MOUNT/$DJ_AFP_RELPATH
+    fi
+    CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
+    EJECT='/usr/bin/drutil eject'
+else
+    CDROM=/dev/cdrom
+    EJECT=${DJ_EJECT:-"eject $CDROM"}
+fi
+    
+if [ "$1" = "-f" ]; then
+    MORE_ARGS="$MORE_ARGS --allow_wrong_length"
+    shift
+fi
+
+if [ "$2" == "m3u" ]; then
+    MORE_ARGS="$MORE_ARGS --rename"
+elif [ -n "$2" ]; then
+    MORE_ARGS="$MORE_ARGS --nocreate_playlists --first_disc $2"
+fi
+
+$PYTHON ${0%/*}/../py/djrip.py \
+    --album="$1" \
+    --catalog "$CATALOG" \
+    --music "$MUSIC" \
+    --eject_cmd=$EJECT \
+    --discid_cmd="cd-discid $CDROM" \
+    --cdparanoia_bin=cdparanoia \
+    --flac_bin=flac \
+    $MORE_ARGS
