@@ -1,3 +1,12 @@
 #!/usr/bin/env zsh
 
-while ! cd-discid /dev/disk2 2&>1 > /dev/null; do sleep 1; done
+# Wait for drive to be ready.
+while ! /usr/bin/drutil status | grep -q Name; do sleep 1; done
+
+CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
+
+# Wait for disc to be unmounted.
+while mount | grep -q $CDROM; do
+    /usr/sbin/diskutil unmount $CDROM > /dev/null
+    sleep 1
+done
