@@ -1,0 +1,3 @@
+#!/usr/bin/env zsh
+
+while ! cd-discid /dev/disk2 2&>1 > /dev/null; do sleep 1; done

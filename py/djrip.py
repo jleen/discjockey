@@ -20,6 +20,7 @@ parser.add_argument('--metaflac_bin', metavar='PATH',
 parser.add_argument('--umount_cmd', metavar='CMD')
 parser.add_argument('--discid_cmd', metavar='CMD', default='/usr/bin/cd-discid')
 parser.add_argument('--eject_cmd', metavar='CMD', default='/usr/bin/eject')
+parser.add_argument('--wait_cmd', metavar='CMD')
 parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('--nocreate_playlists', dest='create_playlists',
                     action='store_false')
@@ -239,8 +240,13 @@ def rip_and_encode(tracks):
     linear_num = 1
     for disc_tracks in divide_tracks_by_disc(tracks)[args.first_disc-1:]:
         if not first_disc:
-            print "--- Insert next disc and hit Enter ---"
-            sys.stdin.readline()
+            if (args.wait_cmd):
+                print "--- Inset next disc ---"
+                with open(os.devnull, 'w') as dev_null:
+                    subprocess.call(args.wait_cmd.split(' '), stdout=dev_null)
+            else:
+                print "--- Insert next disc and hit Enter ---"
+                sys.stdin.readline()
         first_disc = False
 
         if (args.umount_cmd):

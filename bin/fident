@@ -27,12 +27,21 @@ while [[ $(( discs -= 1 )) -ge 0 ]]; do
         eval $DOIT
     fi
     if [[ $discs -ge 1 ]]; then
-        echo '~~~'
-        echo "Insert next disc and press enter"
-        read whatever
+        [[ `uname` == 'Darwin' ]] && drutil eject
+        echo ''
+        echo ''
+        if [[ `uname` == 'Darwin' ]]; then
+            echo '--- Insert next disc ---'
+            dwait
+        else
+            echo '--- Insert next disc and hit Enter ---'
+            read whatever
+        fi
         if [[ -n $1 ]]; then
             echo '~~~' >> $1
             subsequent=1
         fi
     fi
 done
+
+[[ -n $2 && `uname` == 'Darwin' ]] && drutil eject
