@@ -1,12 +1,19 @@
 #!/usr/bin/env zsh
 
-# Wait for drive to be ready.
-while ! /usr/bin/drutil status | grep -q Name; do sleep 1; done
+[[ -f ~/.dj ]] && . ~/.dj
 
-CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
+if [[ `uname` == 'Darwin' ]]; then
+    # Wait for drive to be ready.
+    while ! /usr/bin/drutil status | grep -q Name; do sleep 1; done
 
-# Wait for disc to be unmounted.
-while mount | grep -q $CDROM; do
-    /usr/sbin/diskutil unmount $CDROM > /dev/null
-    sleep 1
-done
+    CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
+
+    # Wait for disc to be unmounted.
+    while mount | grep -q $CDROM; do
+        /usr/sbin/diskutil unmount $CDROM > /dev/null
+        sleep 1
+    done
+else
+    CDROM=${DJ_CDROM:-/dev/cdrom}
+    while cd-discid $CDROM 2>&1 | grep -q 'No medium found'; do sleep 1; done
+fi
