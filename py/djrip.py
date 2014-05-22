@@ -236,18 +236,23 @@ def dissect_track_path(track_path):
 
 def rip_and_encode(tracks):
 
-    first_disc = True
+    disc_tracksets = divide_tracks_by_disc(tracks)
+
+    num_discs = len(disc_tracksets)
+    disc_num = args.first_disc
     linear_num = 1
-    for disc_tracks in divide_tracks_by_disc(tracks)[args.first_disc-1:]:
-        if not first_disc:
+
+    for disc_tracks in disc_tracksets[disc_num-1:]:
+        if disc_num > args.first_disc:
             if (args.wait_cmd):
-                print "--- Inset next disc ---"
+                print "--- Insert disc %d of %d ---" % (disc_num, num_discs)
                 with open(os.devnull, 'w') as dev_null:
                     subprocess.call(args.wait_cmd.split(' '), stdout=dev_null)
             else:
-                print "--- Insert next disc and hit Enter ---"
+                print ("--- Insert disc %d of %d and hit Enter ---" %
+                       (disc_num, num_discs))
                 sys.stdin.readline()
-        first_disc = False
+        disc_num += 1
 
         if (args.umount_cmd):
             with open(os.devnull, 'w') as dev_null:
