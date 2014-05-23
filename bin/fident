@@ -10,12 +10,13 @@ if [[ $1 == "-x" ]]; then
 fi
 
 if [[ -n $2 ]]; then
-    discs=$2
+    num_discs=$2
 else
-    discs=1
+    num_discs=1
 fi
+disc_num=1
 
-while [[ $(( discs -= 1 )) -ge 0 ]]; do
+while [[ $disc_num -le $num_discs ]]; do
     if [[ -n $1 ]]; then
         mkdir -p "`dirname $1`"
         if [[ -n $subsequent ]]; then
@@ -26,15 +27,15 @@ while [[ $(( discs -= 1 )) -ge 0 ]]; do
     else
         eval $DOIT
     fi
-    if [[ $discs -ge 1 ]]; then
+    if [[ $((disc_num += 1)) -le $num_discs ]]; then
         [[ `uname` == 'Darwin' ]] && drutil eject
         echo ''
         echo ''
         if [[ `uname` == 'Darwin' ]]; then
-            echo '--- Insert next disc ---'
+            echo "--- Insert disc $disc_num of $num_discs ---"
             dwait
         else
-            echo '--- Insert next disc and hit Enter ---'
+            echo "--- Insert disc $disc_num of $num_discs and hit Enter ---"
             read whatever
         fi
         if [[ -n $1 ]]; then
