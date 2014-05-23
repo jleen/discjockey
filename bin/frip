@@ -29,6 +29,7 @@ if [[ `uname` == Darwin ]]; then
 else
     CDROM=${DJ_CDROM:-/dev/cdrom}
     EJECT=${DJ_EJECT:-"eject $CDROM"}
+    [[ -n $DJ_WAIT ]] && MORE_ARGS+=("--wait_cmd=$DJ_WAIT")
 fi
     
 if [ "$1" = "-f" ]; then
