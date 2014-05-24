@@ -2,6 +2,11 @@
 
 [[ -f ~/.dj ]] && . ~/.dj
 
+if [[ -f $1 ]]; then
+    echo "Already exists: $1" > /dev/stderr
+    exit 1
+fi
+
 DOIT="python ${0%/*}/../py/djident.py --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER"
 
 if [[ $1 == "-x" ]]; then
