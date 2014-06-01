@@ -28,5 +28,6 @@ fi
 $PYTHON ${0%/*}/../py/djrip.py \
     --rename \
     --album="$1" \
+    --metaflac_bin=metaflac \
     --catalog="$CATALOG" \
     --music="$MUSIC"
