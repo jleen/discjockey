@@ -185,8 +185,9 @@ def ogg_header(path):
     header_fields = { 'channels': channels, 'frequency': m.group(2),
                       'bitwidth': '16' }
 
-    meta = subprocess.channels([args.ogginfo_bin, path])
+    meta = subprocess.check_output([args.ogginfo_bin, path])
     for (key, val) in ogg_meta_re.findall(meta): header_fields[key] = val
+    return header_fields
 
 ogg_flags = { 'genre': '-G',
               'artist': '-a',
