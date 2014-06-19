@@ -185,7 +185,13 @@ def ogg_header(path):
     header_fields = { 'channels': channels, 'frequency': m.group(2),
                       'bitwidth': '16' }
 
-    meta = subprocess.check_output([args.ogginfo_bin, path])
+    try:
+        meta = subprocess.check_output([args.ogginfo_bin, path])
+    except subprocess.CalledProcessError, cpe:
+        # ogginfo returns 1 for a truncated-yet-usable vorbis file.
+        if cpe.returncode != 1: raise
+        meta = cpe.output
+
     for (key, val) in ogg_meta_re.findall(meta): header_fields[key] = val
     return header_fields
 
