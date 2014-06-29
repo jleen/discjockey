@@ -7,6 +7,8 @@ if [[ -f $1 ]]; then
     exit 1
 fi
 
+dwait
+
 DOIT="python ${0%/*}/../py/djident.py --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER"
 
 if [[ $1 == "-x" ]]; then
