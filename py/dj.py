@@ -262,7 +262,7 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
                 encode_proc = subprocess.Popen(
                         [args.lame_bin,
                          '--quiet',
-                         '--preset', 'standard',
+                         '--preset', 'medium',
                          '-r', '--little-endian',
                          '--bitwidth', header_data['bitwidth'],
                          '-s', frequency,
