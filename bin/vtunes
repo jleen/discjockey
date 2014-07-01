@@ -26,7 +26,7 @@ time_hack=$((3600 * 8 + 2))  # max(PST, PDT) + FAT slop
 # Source for --iconv hack:
 #   http://lists.samba.org/archive/rsync/2008-August/021564.html
 
-${DJ_RSYNC:-rsync} -vrtz \
+${DJ_PYTHON:-python} ${0%/*}/../py/sleepless.py ${DJ_RSYNC:-rsync} -vrtz \
     --delete-before \
     --modify-window=$time_hack \
     --exclude=.AppleDouble \
