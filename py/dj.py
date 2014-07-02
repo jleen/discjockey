@@ -293,10 +293,10 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
             raise Exception('Abnormal %s termination' % encoder)
         if decode_proc.returncode != 0:
             raise Exception('Abnormal %s termination' % in_format)
-    except ValueError:
+    except:
         # Remove the (presumably incomplete) output file if we crash during
         # transcoding.
-        logging.debug('Removing %s' % out_path)
+        logging.warning('Removing %s' % out_path)
         os.unlink(out_path)
         raise
 
