@@ -301,7 +301,8 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
         raise
 
 def transcode_flac(music_path, rel_dir, filename):
-    pipe_transcode(music_path, rel_dir, filename, 'flac')
+    if args.mp3: pipe_transcode(music_path, rel_dir, filename, 'flac')
+    else: transcode_wav(music_path, rel_dir, filename)
 
 def transcode_ogg(music_path, rel_dir, filename):
     pipe_transcode(music_path, rel_dir, filename, 'ogg')
