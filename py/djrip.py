@@ -283,8 +283,7 @@ def rip_and_encode(tracks):
                             stdin=rip_proc.stdout, stdout=subprocess.PIPE)
                 rip_proc.stdout.close()
                 encode_proc.communicate()
-                rip_proc.poll()
-                if rip_proc.returncode != 0:
+                if rip_proc.wait() != 0:
                     raise Exception('Abnormal cdparanoia termination')
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
