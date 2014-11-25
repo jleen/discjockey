@@ -183,7 +183,6 @@ def write_playlists(playlists):
     for (filename, tracks) in playlists:
         path = os.path.join(args.music, args.album, filename)
         if args.rename and os.path.exists(path): os.remove(path)
-        print path
         f = open(path, 'w')
         for track in tracks:
             if not is_metatrack(track): f.write(track['filename'] + '\n');
