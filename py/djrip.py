@@ -168,7 +168,7 @@ def make_playlists(filename):
             if is_metatrack(track):
                 if is_master: tracks.append(track)
             else: tracks.append(track)
-            playlists.append((playlist, tracks))
+        playlists.append((playlist, tracks))
         is_master = False
 
     return playlists
@@ -183,6 +183,7 @@ def write_playlists(playlists):
     for (filename, tracks) in playlists:
         path = os.path.join(args.music, args.album, filename)
         if args.rename and os.path.exists(path): os.remove(path)
+        print path
         f = open(path, 'w')
         for track in tracks:
             if not is_metatrack(track): f.write(track['filename'] + '\n');
@@ -222,6 +223,7 @@ def rename_files(tracks):
                       os.path.join(path, new_name))
         subprocess.check_output([
                 args.metaflac_bin,
+                '--remove-all-tags',
                 '--set-tag=GENRE=%s' % track['genre'],
                 '--set-tag=ARTIST=%s' % track['artist'],
                 '--set-tag=ALBUM=%s' % track['album'],
