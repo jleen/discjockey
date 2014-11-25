@@ -2,14 +2,17 @@
 
 [[ -f ~/.dj ]] && . ~/.dj
 
+DWAIT=${DJ_WAIT:-${0%/*}/dwait}
+
 if [[ -f $1 ]]; then
     echo "Already exists: $1" > /dev/stderr
     exit 1
 fi
 
-dwait
+$DWAIT
 
-DOIT="python ${0%/*}/../py/djident.py --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER"
+DOIT=(python \"${0%/*}\"/../py/djident.py
+      --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER)
 
 if [[ $1 == "-x" ]]; then
     DOIT="$DOIT --nometa"
@@ -40,7 +43,7 @@ while [[ $disc_num -le $num_discs ]]; do
         echo ''
         if [[ `uname` == 'Darwin' ]]; then
             echo "--- Insert disc $disc_num of $num_discs ---"
-            dwait
+            $DWAIT
         else
             echo "--- Insert disc $disc_num of $num_discs and hit Enter ---"
             read whatever

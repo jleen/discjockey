@@ -13,6 +13,8 @@ if [[ `uname` == 'Darwin' ]]; then
         /usr/sbin/diskutil unmount $CDROM > /dev/null
         sleep 1
     done
+elif [[ `uname` == CYGWIN_NT* ]]; then
+    while cdrecord -toc 2>&1 | grep -q 'Cannot load media'; do sleep 1; done
 else
     CDROM=${DJ_CDROM:-/dev/cdrom}
     while cd-discid $CDROM 2>&1 | grep -q 'No medium found'; do sleep 1; done
