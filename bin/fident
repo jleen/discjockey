@@ -39,9 +39,10 @@ while [[ $disc_num -le $num_discs ]]; do
     fi
     if [[ $((disc_num += 1)) -le $num_discs ]]; then
         [[ `uname` == 'Darwin' ]] && drutil eject
+        [[ `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null
         echo ''
         echo ''
-        if [[ `uname` == 'Darwin' ]]; then
+        if [[ `uname` == 'Darwin' || `uname` == CYGWIN_NT* ]]; then
             echo "--- Insert disc $disc_num of $num_discs ---"
             $DWAIT
         else
@@ -56,3 +57,4 @@ while [[ $disc_num -le $num_discs ]]; do
 done
 
 [[ -n $2 && `uname` == 'Darwin' ]] && drutil eject
+[[ -n $2 && `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null
