@@ -1,5 +1,8 @@
 #!/usr/bin/env zsh
 
+# Windows is based on a completely different scientific principle.
+[[ `uname` == CYGWIN_NT* ]] && { wrip $* ; exit 0 }
+
 [[ -f ~/.dj ]] && . ~/.dj
 
 PYTHON=${DJ_PYTHON:-python}

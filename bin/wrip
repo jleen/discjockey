@@ -9,7 +9,7 @@ dest=$DJ_MUSIC/$album
 
 if [[ -d $dest ]]; then
     echo "Already exists: $dest" > /dev/stderr
-    #exit 1
+    exit 1
 fi
 
 mkdir -p $dest
@@ -21,10 +21,23 @@ else
 fi
 
 for disc in {01..$num_discs}; do
-    echo "--- Please rip disc $disc and hit Enter ---"
-    read whatever
+    echo "--- Insert disc $(($disc)) of $num_discs ---"
+    dwait
+    echo "Ripping via external ripper..."
+    $DJ_EXTERNAL_RIPPER
+    cdrecord -eject > /dev/null 2>&1
 
     for track in $src/*.flac; do
-        mv -i $track "$dest/disc$disc `basename $track`"
+        destfile="$dest/disc${disc}track`basename $track`"
+
+        echo "Archiving track $(($disc))..."
+        cp -i $track $destfile
+
+        echo "Verifying track $(($disc))..."
+        diff -q $track $destfile || exit 2
+
+        rm $track
     done
+
+    echo
 done
