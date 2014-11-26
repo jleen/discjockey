@@ -39,7 +39,7 @@ while [[ $disc_num -le $num_discs ]]; do
     fi
     if [[ $((disc_num += 1)) -le $num_discs ]]; then
         [[ `uname` == 'Darwin' ]] && drutil eject
-        [[ `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null
+        [[ `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null 2>&1
         echo ''
         echo ''
         if [[ `uname` == 'Darwin' || `uname` == CYGWIN_NT* ]]; then
@@ -57,4 +57,4 @@ while [[ $disc_num -le $num_discs ]]; do
 done
 
 [[ -n $2 && `uname` == 'Darwin' ]] && drutil eject
-[[ -n $2 && `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null
+[[ -n $2 && `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null 2>&1
