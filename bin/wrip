@@ -1,0 +1,30 @@
+#!/usr/bin/env zsh
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+album=$1
+
+src=$DJ_SCRATCH
+dest=$DJ_MUSIC/$album
+
+if [[ -d $dest ]]; then
+    echo "Already exists: $dest" > /dev/stderr
+    #exit 1
+fi
+
+mkdir -p $dest
+
+if [[ -n $2 ]]; then
+    num_discs=$2
+else
+    num_discs=1
+fi
+
+for disc in {01..$num_discs}; do
+    echo "--- Please rip disc $disc and hit Enter ---"
+    read whatever
+
+    for track in $src/*.flac; do
+        mv -i $track "$dest/disc$disc `basename $track`"
+    done
+done
