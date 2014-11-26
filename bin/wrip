@@ -3,24 +3,23 @@
 [[ -f ~/.dj ]] && . ~/.dj
 
 album=$1
+first_disc=${2:-1}
 
 src=$DJ_SCRATCH
 dest=$DJ_MUSIC/$album
 
-if [[ -d $dest ]]; then
+if [[ -z $2 && -d $dest ]]; then
     echo "Already exists: $dest" > /dev/stderr
     exit 1
 fi
 
 mkdir -p $dest
 
-if [[ -n $2 ]]; then
-    num_discs=$2
-else
-    num_discs=1
-fi
+num_discs=$((`grep ^~~~$ $album | wc -l` + 1))
 
 for disc in {01..$num_discs}; do
+    [[ $disc -lt $first_disc ]] && continue
+
     echo "--- Insert disc $(($disc)) of $num_discs ---"
     dwait
     echo "Ripping via external ripper..."
