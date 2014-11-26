@@ -26,13 +26,14 @@ for disc in {01..$num_discs}; do
     $DJ_EXTERNAL_RIPPER
     cdrecord -eject > /dev/null 2>&1
 
+    tracknum=0
     for track in $src/*.flac; do
         destfile="$dest/disc${disc}track`basename $track`"
 
-        echo "Archiving track $(($disc))..."
+        echo "Archiving track $((tracknum+=1))..."
         cp -i $track $destfile
 
-        echo "Verifying track $(($disc))..."
+        echo "Verifying track $tracknum..."
         diff -q $track $destfile || exit 2
 
         rm $track
