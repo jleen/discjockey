@@ -1,0 +1,18 @@
+#!/usr/bin/env zsh
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+MUSIC=${DJ_MUSIC:-~/music}
+
+album=$1
+dir=$MUSIC/$album
+
+setopt extendedglob
+
+if ls $dir/^*.m3u > /dev/null 2>&1; then
+    echo "But there's stuff in there!" > /dev/stderr
+    exit 1
+fi
+
+rm -i $dir/*.m3u
+rmdir $dir
