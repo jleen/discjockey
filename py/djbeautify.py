@@ -1,3 +1,5 @@
+# Copyright (c) 2015 John Leen
+
 import re
 import sys
 
