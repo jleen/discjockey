@@ -135,7 +135,8 @@ def make_playlists(filename):
                 'genre': genre,
                 'artist': artist,
                 'album': album,
-                'title': line
+                'title': line,
+                'set': set_name
                 }
             master_set.append(track)
             if current_set != None: current_set.append(track)
@@ -267,6 +268,10 @@ def rip_and_encode(tracks):
         for (track_num, track) in enumerate(disc_tracks, start=1):
             if track == SKIPPED_TRACK: continue
             track_name = track['track_name']
+
+            print 'Ripping ' + track['title']
+            if track['set']: print 'from ' + track['set']
+            print
 
             output_file = os.path.join(args.music, args.album,
                                        track['filename'])
