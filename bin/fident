@@ -4,6 +4,15 @@
 
 DWAIT=${DJ_WAIT:-${0%/*}/dwait}
 
+if [[ `uname` = 'Darwin' ]]; then
+    EJECT=${DJ_EJECT:-"drutil eject"}
+elif [[ `uname` = CYGWIN_NT* ]]; then
+    EJECT=${DJ_EJECT:-"cdrecord -eject > /dev/null 2>&1"}
+else
+    CDROM=${DJ_CDROM:-/dev/cdrom}
+    EJECT=${DJ_EJECT:-"eject $CDROM"}
+fi
+
 if [[ -f $1 ]]; then
     echo "Already exists: $1" > /dev/stderr
     exit 1
@@ -38,17 +47,11 @@ while [[ $disc_num -le $num_discs ]]; do
         eval $DOIT
     fi
     if [[ $((disc_num += 1)) -le $num_discs ]]; then
-        [[ `uname` == 'Darwin' ]] && drutil eject
-        [[ `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null 2>&1
+        eval $EJECT
         echo ''
         echo ''
-        if [[ `uname` == 'Darwin' || `uname` == CYGWIN_NT* ]]; then
-            echo "--- Insert disc $disc_num of $num_discs ---"
-            $DWAIT
-        else
-            echo "--- Insert disc $disc_num of $num_discs and hit Enter ---"
-            read whatever
-        fi
+        echo "--- Insert disc $disc_num of $num_discs ---"
+        $DWAIT
         if [[ -n $1 ]]; then
             echo '~~~' >> $1
             subsequent=1
@@ -56,5 +59,4 @@ while [[ $disc_num -le $num_discs ]]; do
     fi
 done
 
-[[ -n $2 && `uname` == 'Darwin' ]] && drutil eject
-[[ -n $2 && `uname` == CYGWIN_NT* ]] && cdrecord -eject > /dev/null 2>&1
+[[ -n $2 ]] && eval $EJECT
