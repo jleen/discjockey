@@ -5,6 +5,9 @@
 
 [[ -f ~/.dj ]] && . ~/.dj
 
+DWAIT=${DJ_WAIT:-${0%/*}/dwait}
+DEJECT=${DJ_EJECT:-${0%/*}/deject}
+
 PYTHON=${DJ_PYTHON:-python}
 MUSIC=${DJ_MUSIC:-~/music}
 CATALOG=${DJ_CATALOG:-~/catalog}
@@ -20,28 +23,20 @@ find_mount() {
         | cut -d' ' -f3
 }
 
-if [[ `uname` == Darwin ]]; then
-    if [[ -n $DJ_AFP_CATALOG ]]; then
-        host=`echo $DJ_AFP_CATALOG | cut -d: -f1`
-        share=`echo $DJ_AFP_CATALOG | cut -d: -f2`
-        dir=`echo $DJ_AFP_CATALOG | cut -d: -f3`
-        mount=`find_mount $host $share`
-        CATALOG=$mount/$dir
-    fi
-    if [[ -n $DJ_AFP_MUSIC ]]; then
-        host=`echo $DJ_AFP_MUSIC | cut -d: -f1`
-        share=`echo $DJ_AFP_MUSIC | cut -d: -f2`
-        dir=`echo $DJ_AFP_MUSIC | cut -d: -f3`
-        mount=`find_mount $host $share`
-        MUSIC=$mount/$dir
-    fi
-    CDROM=${DJ_CDROM:-/`drutil status|grep Name|cut -d/ -f2-`}
-    EJECT='/usr/bin/drutil eject'
-    MORE_ARGS+=("--umount_cmd=dwait" "--wait_cmd=dwait")
-else
-    CDROM=${DJ_CDROM:-/dev/cdrom}
-    EJECT=${DJ_EJECT:-"eject $CDROM"}
-    [[ -n $DJ_WAIT ]] && MORE_ARGS+=("--wait_cmd=$DJ_WAIT")
+# The AFP logic is mostly here for the sake of Mac OS.
+if [[ -n $DJ_AFP_CATALOG ]]; then
+    host=`echo $DJ_AFP_CATALOG | cut -d: -f1`
+    share=`echo $DJ_AFP_CATALOG | cut -d: -f2`
+    dir=`echo $DJ_AFP_CATALOG | cut -d: -f3`
+    mount=`find_mount $host $share`
+    CATALOG=$mount/$dir
+fi
+if [[ -n $DJ_AFP_MUSIC ]]; then
+    host=`echo $DJ_AFP_MUSIC | cut -d: -f1`
+    share=`echo $DJ_AFP_MUSIC | cut -d: -f2`
+    dir=`echo $DJ_AFP_MUSIC | cut -d: -f3`
+    mount=`find_mount $host $share`
+    MUSIC=$mount/$dir
 fi
     
 if [ "$1" = "-f" ]; then
@@ -59,7 +54,8 @@ $PYTHON ${0%/*}/../py/djrip.py \
     --album="$1" \
     --catalog="$CATALOG" \
     --music="$MUSIC" \
-    --eject_cmd=$EJECT \
+    --eject_cmd=$DEJECT \
+    --wait_cmd=$DWAIT \
     --discid_cmd="cd-discid $CDROM" \
     --cdparanoia_bin=cdparanoia \
     --flac_bin=flac \

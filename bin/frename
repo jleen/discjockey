@@ -8,21 +8,20 @@ CATALOG=${DJ_CATALOG:-~/catalog}
 
 MORE_ARGS=()
 
-if [[ `uname` == Darwin ]]; then
-    if [[ -n $DJ_AFP_CATALOG ]]; then
-        host=`echo $DJ_AFP_CATALOG | cut -d: -f1`
-        share=`echo $DJ_AFP_CATALOG | cut -d: -f2`
-        dir=`echo $DJ_AFP_CATALOG | cut -d: -f3`
-        mount=`mount | grep $host | grep $share | cut -d' ' -f3`
-        CATALOG=$mount/$dir
-    fi
-    if [[ -n $DJ_AFP_MUSIC ]]; then
-        host=`echo $DJ_AFP_MUSIC | cut -d: -f1`
-        share=`echo $DJ_AFP_MUSIC | cut -d: -f2`
-        dir=`echo $DJ_AFP_MUSIC | cut -d: -f3`
-        mount=`mount | grep $host | grep $share | cut -d' ' -f3`
-        MUSIC=$mount/$dir
-    fi
+# The AFP logic is mostly here for the sake of Mac OS.
+if [[ -n $DJ_AFP_CATALOG ]]; then
+    host=`echo $DJ_AFP_CATALOG | cut -d: -f1`
+    share=`echo $DJ_AFP_CATALOG | cut -d: -f2`
+    dir=`echo $DJ_AFP_CATALOG | cut -d: -f3`
+    mount=`mount | grep $host | grep $share | cut -d' ' -f3`
+    CATALOG=$mount/$dir
+fi
+if [[ -n $DJ_AFP_MUSIC ]]; then
+    host=`echo $DJ_AFP_MUSIC | cut -d: -f1`
+    share=`echo $DJ_AFP_MUSIC | cut -d: -f2`
+    dir=`echo $DJ_AFP_MUSIC | cut -d: -f3`
+    mount=`mount | grep $host | grep $share | cut -d' ' -f3`
+    MUSIC=$mount/$dir
 fi
 
 $PYTHON ${0%/*}/../py/djrip.py \

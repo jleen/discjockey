@@ -4,6 +4,8 @@
 
 if [[ `uname` == Darwin ]]; then
     /usr/bin/drutil eject
+elif [[ `uname` = CYGWIN_NT* ]]; then
+    EJECT=${DJ_EJECT:-"cdrecord -eject > /dev/null 2>&1"}
 else
     ${DJ_EJECT:-"eject $CDROM"} ${DJ_CDROM:-/dev/cdrom}
 fi

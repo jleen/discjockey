@@ -249,6 +249,11 @@ def assert_first_disc_length(tracks):
     first_disc_tracks = disc_tracksets[args.first_disc - 1]
     assert_disc_length(len(first_disc_tracks))
 
+def maybe_umount():
+    if (args.umount_cmd):
+        with open(os.devnull, 'w') as dev_null:
+            subprocess.call(args.umount_cmd.split(' '), stdout=dev_null)
+
 def rip_and_encode(tracks):
 
     disc_tracksets = divide_tracks_by_disc(tracks)
@@ -269,9 +274,7 @@ def rip_and_encode(tracks):
                 sys.stdin.readline()
         disc_num += 1
 
-        if (args.umount_cmd):
-            with open(os.devnull, 'w') as dev_null:
-                subprocess.call(args.umount_cmd.split(' '), stdout=dev_null)
+        maybe_umount()
         assert_disc_length(len(disc_tracks))
 
         for (track_num, track) in enumerate(disc_tracks, start=1):
