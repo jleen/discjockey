@@ -236,6 +236,19 @@ def dissect_track_path(track_path):
     comps = track_path.split(os.path.sep)
     return (comps[0], comps[-2], comps[-1])
 
+def assert_disc_length(disc_len):
+    discid = subprocess.check_output(args.discid_cmd.split(' '))
+    num_tracks = int(discid.split(' ')[1])
+    if not args.allow_wrong_length and num_tracks != disc_len:
+        print ('Playlist length %d does not match disc length %d'
+                        % (disc_len, num_tracks))
+        sys.exit(1)
+
+def assert_first_disc_length(tracks):
+    disc_tracksets = divide_tracks_by_disc(tracks)
+    first_disc_tracks = disc_tracksets[args.first_disc - 1]
+    assert_disc_length(len(first_disc_tracks))
+
 def rip_and_encode(tracks):
 
     disc_tracksets = divide_tracks_by_disc(tracks)
@@ -259,11 +272,7 @@ def rip_and_encode(tracks):
         if (args.umount_cmd):
             with open(os.devnull, 'w') as dev_null:
                 subprocess.call(args.umount_cmd.split(' '), stdout=dev_null)
-        discid = subprocess.check_output(args.discid_cmd.split(' '))
-        num_tracks = int(discid.split(' ')[1])
-        if not args.allow_wrong_length and num_tracks != len(disc_tracks):
-            raise Exception('Playlist length %d does not match disc length %d'
-                            % (len(disc_tracks), num_tracks))
+        assert_disc_length(len(disc_tracks))
 
         for (track_num, track) in enumerate(disc_tracks, start=1):
             if track == SKIPPED_TRACK: continue
@@ -307,6 +316,8 @@ if platform.system() == 'Darwin':
     pmset.prevent_idle_sleep('Disc Jockey Rip')
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
+
+assert_first_disc_length(playlists[0][1])
 if (args.create_playlists): write_playlists(playlists)
 
 if (args.rename): rename_files(playlists[0][1])
