@@ -234,6 +234,9 @@ def rename_files(tracks):
     
 def dissect_track_path(track_path):
     comps = track_path.split(os.path.sep)
+    if len(comps) < 3: raise Exception(
+            'Album path %d should be Genre/Collection/Album or deeper'
+            % track_path)
     return (comps[0], comps[-2], comps[-1])
 
 def assert_disc_length(disc_len):
