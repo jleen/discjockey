@@ -1,0 +1,30 @@
+#!/bin/zsh
+
+[[ -f ~/.dj ]] && . ~/.dj
+
+[[ $1 == '-x' ]] && fitx=1 && shift
+album=$1
+count=$2
+
+echo '--- Insert first disc ---'
+dwait
+
+if [[ -f $album ]]; then
+    frip $album
+else
+    echo 'Identifying...'
+    if [[ -n $fitx ]]; then
+        fident -x $album $count
+        echo $album >> ~/bogus
+    else
+        fident $album $count
+    fi
+    eval ${DJ_EDITOR:-$EDITOR} "'$album'"
+    if [[ -n $count ]]; then
+        echo ''
+        echo ''
+        echo '--- Re-insert first disc ---'
+        dwait
+    fi
+    frip $album
+fi
