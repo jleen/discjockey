@@ -7,6 +7,7 @@
 
 DWAIT=${DJ_WAIT:-${0%/*}/dwait}
 DEJECT=${DJ_EJECT:-${0%/*}/deject}
+DID=${DID:-${0%/*}/did}
 
 PYTHON=${DJ_PYTHON:-python}
 MUSIC=${DJ_MUSIC:-~/music}
@@ -56,7 +57,7 @@ $PYTHON ${0%/*}/../py/djrip.py \
     --music="$MUSIC" \
     --eject_cmd=$DEJECT \
     --wait_cmd=$DWAIT \
-    --discid_cmd="cd-discid $CDROM" \
+    --discid_cmd=$DID \
     --cdparanoia_bin=cdparanoia \
     --flac_bin=flac \
     $MORE_ARGS
