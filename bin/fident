@@ -51,4 +51,4 @@ while [[ $disc_num -le $num_discs ]]; do
     fi
 done
 
-$DEJECT
+[[ -n $2 ]] && $DEJECT
