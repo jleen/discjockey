@@ -2,7 +2,7 @@
 
 [[ -f ~/.dj ]] && . ~/.dj
 
-PYTHON=${DJ_PYTHON:-python}
+PYTHON=${DJ_PYTHON:-python3}
 MUSIC=${DJ_MUSIC:-~/music}
 CATALOG=${DJ_CATALOG:-~/catalog}
 

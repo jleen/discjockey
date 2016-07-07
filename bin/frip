@@ -9,7 +9,7 @@ DWAIT=${DJ_WAIT:-${0%/*}/dwait}
 DEJECT=${DJ_EJECT:-${0%/*}/deject}
 DID=${DID:-${0%/*}/did}
 
-PYTHON=${DJ_PYTHON:-python}
+PYTHON=${DJ_PYTHON:-python3}
 MUSIC=${DJ_MUSIC:-~/music}
 CATALOG=${DJ_CATALOG:-~/catalog}
 

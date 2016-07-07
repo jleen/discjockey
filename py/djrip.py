@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2015 John Leen
+# Copyright (c) 2013-2016 John Leen
 
 import argparse
 import logging
@@ -31,8 +31,8 @@ parser.add_argument('--first_disc', metavar='N', type=int, default=1)
 
 args = parser.parse_args()
 
-if args.verbose >= 2: log_level = logging.DEBUG
-elif args.verbose >= 1: log_level = logging.INFO
+if args.verbose and args.verbose >= 2: log_level = logging.DEBUG
+elif args.verbose and args.verbose >= 1: log_level = logging.INFO
 else: log_level = logging.WARNING
 logging.basicConfig(level=log_level, format='%(message)s')
 
@@ -213,8 +213,9 @@ def rename_files(tracks):
         new_name = track['filename']
         # Don't try to rename a file if the old and new names are Unicode
         # equivalents, because OS X canonicalizes Unicode filenames.
-        old_name_nfc = unicodedata.normalize('NFC', old_name.decode('utf-8'))
-        new_name_nfc = unicodedata.normalize('NFC', new_name.decode('utf-8'))
+        # TODO(jleen): Is this right?  Python 3 made it weird.
+        old_name_nfc = unicodedata.normalize('NFC', old_name)
+        new_name_nfc = unicodedata.normalize('NFC', new_name)
         if old_name_nfc != new_name_nfc:
             if os.path.exists(os.path.join(path, new_name)):
                 raise Exception('Trying to rename %s to already-existing %s' %
@@ -241,10 +242,10 @@ def dissect_track_path(track_path):
 
 def assert_disc_length(disc_len):
     discid = subprocess.check_output(args.discid_cmd.split(' '))
-    num_tracks = int(discid.split(' ')[1])
+    num_tracks = int(discid.split(b' ')[1])
     if not args.allow_wrong_length and num_tracks != disc_len:
-        print ('Playlist length %d does not match disc length %d'
-                        % (disc_len, num_tracks))
+        print(('Playlist length %d does not match disc length %d'
+                        % (disc_len, num_tracks)))
         sys.exit(1)
 
 def assert_first_disc_length(tracks):
@@ -263,12 +264,12 @@ def rip_and_encode(tracks):
     for disc_tracks in disc_tracksets[disc_num-1:]:
         if disc_num > args.first_disc:
             if (args.wait_cmd):
-                print "--- Insert disc %d of %d ---" % (disc_num, num_discs)
+                print(("--- Insert disc %d of %d ---" % (disc_num, num_discs)))
                 with open(os.devnull, 'w') as dev_null:
                     subprocess.call(args.wait_cmd.split(' '), stdout=dev_null)
             else:
-                print ("--- Insert disc %d of %d and hit Enter ---" %
-                       (disc_num, num_discs))
+                print(("--- Insert disc %d of %d and hit Enter ---" %
+                       (disc_num, num_discs)))
                 sys.stdin.readline()
         disc_num += 1
 
@@ -278,9 +279,9 @@ def rip_and_encode(tracks):
             if track == SKIPPED_TRACK: continue
             track_name = track['track_name']
 
-            print 'Ripping ' + track['title']
-            if track['set']: print 'from ' + track['set']
-            print
+            print(('Ripping ' + track['title']))
+            if track['set']: print(('from ' + track['set']))
+            print()
 
             output_file = os.path.join(args.music, args.album,
                                        track['filename'])
@@ -311,14 +312,14 @@ def rip_and_encode(tracks):
 
         subprocess.check_output(args.eject_cmd.split(' '))
 
-if platform.system() == 'Darwin':
-    import pmset
-    pmset.prevent_idle_sleep('Disc Jockey Rip')
+#if platform.system() == 'Darwin':
+    #import pmset
+    #pmset.prevent_idle_sleep('Disc Jockey Rip')
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 
-assert_first_disc_length(playlists[0][1])
-if (args.create_playlists): write_playlists(playlists)
+if not args.rename: assert_first_disc_length(playlists[0][1])
+if args.create_playlists: write_playlists(playlists)
 
-if (args.rename): rename_files(playlists[0][1])
-elif (args.rip): rip_and_encode(playlists[0][1])
+if args.rename: rename_files(playlists[0][1])
+elif args.rip: rip_and_encode(playlists[0][1])

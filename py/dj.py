@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2014 John Leen
+# Copyright (c) 2012-2016 John Leen
 
 import argparse
 import logging
@@ -31,8 +31,8 @@ parser.add_argument('--skip_dir', metavar='DIR', action='append')
 
 args = parser.parse_args()
 
-if args.verbose >= 2: log_level = logging.DEBUG
-elif args.verbose >= 1: log_level = logging.INFO
+if args.verbose and args.verbose >= 2: log_level = logging.DEBUG
+elif args.verbose and args.verbose >= 1: log_level = logging.INFO
 else: log_level = logging.WARNING
 logging.basicConfig(level=log_level, format='%(message)s')
 
@@ -139,24 +139,24 @@ def create_m3u(music_path, rel_dir, files):
             out_f.write('%s\n' % (music_file))
     return m3u_filename
 
-flac_header_re = re.compile('.+: FLAC audio bitstream data, ' +
-                            '(16|24) bit, (mono|stereo), (44\.1|48) kHz, ' +
-                            '\d+ samples')
-ogg_header_re = re.compile('.+: Ogg data, Vorbis audio, (mono|stereo), ' +
-                           '(11025|22050|37800|44100|48000)')
-flac_meta_re = re.compile('(GENRE|ARTIST|ALBUM|TITLE|TRACKNUMBER)=(.*)')
-ogg_meta_re = re.compile('(genre|artist|album|title|tracknumber)=(.*)')
+flac_header_re = re.compile(b'.+: FLAC audio bitstream data, ' +
+                            b'(16|24) bit, (mono|stereo), (44\.1|48) kHz, ' +
+                            b'\d+ samples')
+ogg_header_re = re.compile(b'.+: Ogg data, Vorbis audio, (mono|stereo), ' +
+                           b'(11025|22050|37800|44100|48000)')
+flac_meta_re = re.compile(b'(GENRE|ARTIST|ALBUM|TITLE|TRACKNUMBER)=(.*)')
+ogg_meta_re = re.compile(b'(genre|artist|album|title|tracknumber)=(.*)')
 
 def flac_header(path):
     magic = subprocess.check_output([args.file_bin, path]).rstrip()
     m = flac_header_re.match(magic)
 
-    if   m.group(2) == 'mono'  : channels = '1'
-    elif m.group(2) == 'stereo': channels = '2'
+    if   m.group(2) == b'mono'  : channels = '1'
+    elif m.group(2) == b'stereo': channels = '2'
     else: assert False, "Can't parse flac channel magic"
 
-    if   m.group(3) == '44.1': frequency = '44100'
-    elif m.group(3) == '48'  : frequency = '48000'
+    if   m.group(3) == b'44.1': frequency = '44100'
+    elif m.group(3) == b'48'  : frequency = '48000'
     else: assert False, "Can't parse flac frequency magic"
 
     header_fields = { 'channels': channels, 'frequency': frequency,
@@ -178,8 +178,8 @@ def ogg_header(path):
     magic = subprocess.check_output([args.file_bin, path]).rstrip()
     m = ogg_header_re.match(magic)
 
-    if   m.group(1) == 'mono'  : channels = '1'
-    elif m.group(1) == 'stereo': channels = '2'
+    if   m.group(1) == b'mono'  : channels = '1'
+    elif m.group(1) == b'stereo': channels = '2'
     else: assert False, "Can't parse ogg channel magic"
 
     header_fields = { 'channels': channels, 'frequency': m.group(2),
@@ -187,7 +187,7 @@ def ogg_header(path):
 
     try:
         meta = subprocess.check_output([args.ogginfo_bin, path])
-    except subprocess.CalledProcessError, cpe:
+    except subprocess.CalledProcessError as cpe:
         # ogginfo returns 1 for a truncated-yet-usable vorbis file.
         if cpe.returncode != 1: raise
         meta = cpe.output
@@ -209,7 +209,7 @@ mp3_flags = { 'genre': '--tg',
 
 def header_to_flags(header_data, flag_set):
     flags = []
-    for (key, val) in header_data.items():
+    for (key, val) in list(header_data.items()):
         if key in flag_set: flags += [ flag_set[key], val ]
     return flags
 
@@ -224,7 +224,7 @@ def pipe_transcode(music_path, rel_dir, filename, in_format):
         logging.info('Not re-transcoding %s' % out_path)
         return
 
-    print 'Transcoding %s' % (os.path.join(rel_dir, filename))
+    print('Transcoding %s' % (os.path.join(rel_dir, filename)))
     sys.stdout.flush()
     try:
         with open(os.devnull, 'w') as dev_null:
@@ -319,7 +319,7 @@ def transcode_wav(music_path, rel_dir, filename):
         logging.info('Not re-transcoding %s' % out_path)
         return
 
-    print 'Transcoding %s' % (os.path.join(rel_dir, filename))
+    print('Transcoding %s' % (os.path.join(rel_dir, filename)))
     sys.stdout.flush()
     try:
         with open(os.devnull, 'w') as dev_null:

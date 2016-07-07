@@ -8,7 +8,7 @@ if [[ `uname` == Darwin ]]; then
     # Source for --iconv hack:
     #   http://lists.samba.org/archive/rsync/2008-August/021564.html
     ICONV='--iconv=UTF8-MAC,UTF-8'
-    SLEEPLESS=(${DJ_PYTHON:-python} ${0%/*}/../py/sleepless.py)
+    SLEEPLESS=(${DJ_PYTHON:-python3} ${0%/*}/../py/sleepless.py)
 elif [[ `uname` -= CYGWIN* ]]; then
     GETLABELS=cygwin_getlabels
     TRIMLABELS=cygwin_trimlabels
