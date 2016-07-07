@@ -61,7 +61,7 @@ for (i, line) in enumerate(lines[1:], 1):
             lines[iMinus1][1] = END_OF_SET
     else:
         new_prefix = longest_common_prefix(line[0], lines[iMinus1][0])
-        if len(new_prefix) > MIN_PREFIX_LEN:
+        if new_prefix and len(new_prefix) > MIN_PREFIX_LEN:
             # This track and the previous look like the beginning of a new set.
             (prefix, strip_len) = sanitize_prefix(new_prefix)
             iMinus2 = decrement_index(iMinus1, lines)
