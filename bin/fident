@@ -12,11 +12,12 @@ fi
 
 $DWAIT
 
-DOIT=(${DJ_PYTHON:-python3} \"${0%/*}\"/../py/djident.py
+export PYTHONPATH="${0%/*}/../py:$PYTHONPATH"
+DOIT=(${DJ_PYTHON:-python3} -m djident
       --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER)
 
 if [[ $1 == "-x" ]]; then
-    DOIT="$DOIT --nometa"
+    DOIT+='--nometa'
     shift
 fi
 
@@ -31,12 +32,12 @@ while [[ $disc_num -le $num_discs ]]; do
     if [[ -n $1 ]]; then
         mkdir -p "`dirname $1`"
         if [[ -n $subsequent ]]; then
-            eval $DOIT | tee -a $1
+            $DOIT | tee -a $1
         else
-            eval $DOIT | tee $1
+            $DOIT | tee $1
         fi
     else
-        eval $DOIT
+        $DOIT
     fi
     if [[ $((disc_num += 1)) -le $num_discs ]]; then
         $DEJECT

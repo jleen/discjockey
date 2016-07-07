@@ -24,7 +24,7 @@ if [[ -n $DJ_AFP_MUSIC ]]; then
     MUSIC=$mount/$dir
 fi
 
-$PYTHON ${0%/*}/../py/djrip.py \
+PYTHONPATH="${0%/*}/../py:$PYTHONPATH" $PYTHON -m djrip \
     --rename \
     --album="$1" \
     --metaflac_bin=metaflac \

@@ -8,7 +8,7 @@ if [[ `uname` == Darwin ]]; then
     # Source for --iconv hack:
     #   http://lists.samba.org/archive/rsync/2008-August/021564.html
     ICONV='--iconv=UTF8-MAC,UTF-8'
-    SLEEPLESS=(${DJ_PYTHON:-python3} ${0%/*}/../py/sleepless.py)
+    SLEEPLESS=(${DJ_PYTHON:-python3} -m sleepless)
 elif [[ `uname` -= CYGWIN* ]]; then
     GETLABELS=cygwin_getlabels
     TRIMLABELS=cygwin_trimlabels
@@ -51,7 +51,7 @@ fi
 
 time_hack=$((3600 * 8 + 2))  # max(PST, PDT) + FAT slop
 
-$SLEEPLESS ${DJ_RSYNC:-rsync} \
+PYTHONPATH="${0%/*}/../py:$PYTHONPATH" $SLEEPLESS ${DJ_RSYNC:-rsync} \
     -vrtzO \
     --delete \
     --modify-window=$time_hack \

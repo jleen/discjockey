@@ -19,7 +19,7 @@ else
     else
         fident $album $count
     fi
-    eval ${DJ_EDITOR:-$EDITOR} "'$album'"
+    ${DJ_EDITOR:-$EDITOR} "'$album'"
     if [[ -n $count ]]; then
         echo ''
         echo ''

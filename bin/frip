@@ -51,7 +51,7 @@ elif [[ -n $2 ]]; then
     MORE_ARGS+=("--nocreate_playlists" "--first_disc" $2)
 fi
 
-$PYTHON ${0%/*}/../py/djrip.py \
+PYTHONPATH="${0%/*}/../py:$PYTHONPATH" $PYTHON -m djrip \
     --album="$1" \
     --catalog="$CATALOG" \
     --music="$MUSIC" \

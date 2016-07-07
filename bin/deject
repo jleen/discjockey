@@ -2,13 +2,15 @@
 
 [[ -f ~/.dj ]] && . ~/.dj
 
-if [[ `uname` == Darwin ]]; then
-    EJECT=${DJ_EJECT:-"/usr/bin/drutil eject"}
-elif [[ `uname` = CYGWIN_NT* ]]; then
-    EJECT=${DJ_EJECT:-"cdrecord -eject > /dev/null 2>&1"}
-else
-    CDROM=${DJ_CDROM:-/dev/cdrom}
-    EJECT=${DJ_EJECT:-"eject $CDROM"}
+if [[ -z $DJ_EJECT ]]; then
+    if [[ `uname` == Darwin ]]; then
+        EJECT=(/usr/bin/drutil eject)
+    elif [[ `uname` = CYGWIN_NT* ]]; then
+        EJECT=(cdrecord -eject '>' /dev/null '2>&1')
+    else
+        CDROM=${DJ_CDROM:-/dev/cdrom}
+        EJECT=(eject $CDROM)
+    fi
 fi
 
-eval $EJECT
+$EJECT
