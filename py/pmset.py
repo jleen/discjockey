@@ -27,15 +27,17 @@ def IOPMAssertionCreateWithName(assert_name, assert_level, assert_msg):
 
 IOPMAssertionRelease = libIOKit.IOPMAssertionRelease
 
-kIOPMAssertionTypeNoIdleSleep = "NoIdleSleepAssertion"
+kIOPMAssertionTypeNoIdleSleep = b"NoIdleSleepAssertion"
 kIOPMAssertionLevelOn = 255
 
 # Stop idle sleep
 def prevent_idle_sleep(reason):
     # TODO(jleen): The "reason" string doesn't seem to get used.  Why?
     errcode, assertID = IOPMAssertionCreateWithName(
-            kIOPMAssertionTypeNoIdleSleep, kIOPMAssertionLevelOn, reason)
+            kIOPMAssertionTypeNoIdleSleep, kIOPMAssertionLevelOn,
+            reason.encode('ascii'))
     if errcode != 0: raise Exception()
+    print('ok')
     return assertID
 
 # prove it to yourself with this on the Terminal: pmset -g assertions

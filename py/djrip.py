@@ -312,9 +312,9 @@ def rip_and_encode(tracks):
 
         subprocess.check_output(args.eject_cmd.split(' '))
 
-#if platform.system() == 'Darwin':
-    #import pmset
-    #pmset.prevent_idle_sleep('Disc Jockey Rip')
+if platform.system() == 'Darwin':
+    import pmset
+    pmset.prevent_idle_sleep('Disc Jockey Rip')
 
 playlists = make_playlists(os.path.join(args.catalog, args.album))
 
