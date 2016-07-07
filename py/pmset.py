@@ -37,7 +37,6 @@ def prevent_idle_sleep(reason):
             kIOPMAssertionTypeNoIdleSleep, kIOPMAssertionLevelOn,
             reason.encode('ascii'))
     if errcode != 0: raise Exception()
-    print('ok')
     return assertID
 
 # prove it to yourself with this on the Terminal: pmset -g assertions
