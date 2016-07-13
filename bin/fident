@@ -13,8 +13,7 @@ fi
 $DWAIT
 
 export PYTHONPATH="${0%/*}/../py:$PYTHONPATH"
-DOIT=(${DJ_PYTHON:-python3} -m djident
-      --client $DJ_GRACENOTE_CLIENT --user $DJ_GRACENOTE_USER)
+DOIT=(${DJ_PYTHON:-python3} -m djident)
 
 if [[ $1 == "-x" ]]; then
     DOIT+='--nometa'

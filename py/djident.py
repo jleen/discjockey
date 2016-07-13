@@ -9,47 +9,13 @@ import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 from xml.etree import ElementTree
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--client')
-parser.add_argument('--user')
-parser.add_argument('--nometa', action='store_true')
-args = parser.parse_args()
+import djconfig
+import djplatform
 
+toc = djplatform.read_toc()
 
-# Read the CD TOC
-
-if platform.system() == 'Darwin':
-    p = subprocess.Popen(['drutil', 'trackinfo'],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-else:
-    p = subprocess.Popen(['/usr/bin/cdrecord', '-toc'],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-out, err = p.communicate()
-
-
-toc = ''
-if platform.system() == 'Darwin':
-    for line in out.splitlines():
-        if line[8:18] == b'trackStart':
-            last_start = int(line[27:]) + 150
-            toc += str(last_start) + ' '
-        elif line[16:25] == b'trackSize':
-            last_length = int(line[27:])
-        elif line.startswith(b'  Please insert a disc to get track info.'):
-            print("You don't seem to have given me a disc.")
-            sys.exit(1)
-    # drutil doesn't report the leadout, but Gracenote needs it for ID.
-    toc += str(last_start + last_length) + ' '
-else:
-    for line in out.splitlines():
-        if line.startswith(b'track'):
-            toc += str(int(line[17:26]) + 150) + ' '
-    
-
-# Query Gracenote
-
-cid = args.client
-uid = args.user
+cid = djconfig.gracenote_client
+uid = djconfig.gracenote_user
 
 url = 'https://c' + cid.split('-')[0] + '.web.cddbp.net/webapi/xml/1.0/'
 
@@ -93,7 +59,7 @@ trackTree = album.findall('TRACK')
 for track in trackTree:
     tracks.append(urllib.parse.unquote(track.findall('TITLE')[0].text))
 
-if not args.nometa:
+if not djconfig.nometa:
     sys.stdout.buffer.write(('~g %s\n' % genre).encode('utf-8'))
     sys.stdout.buffer.write(('~r %s\n' % artist).encode('utf-8'))
     sys.stdout.buffer.write(('~a %s\n' % title).encode('utf-8'))

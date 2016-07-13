@@ -1,42 +1,13 @@
 # Copyright (c) 2013-2016 John Leen
 
-import argparse
-import logging
 import os
 import subprocess
 import sys
 import unicodedata
 import uuid
 
+import djconfig
 import djplatform
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--music', metavar='DIR')
-parser.add_argument('--catalog', metavar='PATH')
-parser.add_argument('--album', metavar='ALBUM')
-parser.add_argument('--cdparanoia_bin', metavar='PATH',
-                    default='/usr/bin/cdparanoia')
-parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
-parser.add_argument('--metaflac_bin', metavar='PATH',
-                        default='/usr/bin/metaflac')
-parser.add_argument('--umount_cmd', metavar='CMD')
-parser.add_argument('--discid_cmd', metavar='CMD', default='/usr/bin/cd-discid')
-parser.add_argument('--eject_cmd', metavar='CMD', default='/usr/bin/eject')
-parser.add_argument('--wait_cmd', metavar='CMD')
-parser.add_argument('-v', '--verbose', action='count')
-parser.add_argument('--nocreate_playlists', dest='create_playlists',
-                    action='store_false')
-parser.add_argument('--norip', dest='rip', action='store_false')
-parser.add_argument('--rename', action='store_true')
-parser.add_argument('-f', '--allow_wrong_length', action='store_true')
-parser.add_argument('--first_disc', metavar='N', type=int, default=1)
-
-args = parser.parse_args()
-
-if args.verbose and args.verbose >= 2: log_level = logging.DEBUG
-elif args.verbose and args.verbose >= 1: log_level = logging.INFO
-else: log_level = logging.WARNING
-logging.basicConfig(level=log_level, format='%(message)s')
 
 playlist_extension = '.m3u'
 track_extension = '.flac'
@@ -95,7 +66,7 @@ def make_playlists(filename):
     current_set = None
 
     # Get some default metadata from the album pathname.
-    (genre, artist, album) = dissect_track_path(args.album)
+    (genre, artist, album) = dissect_track_path(djconfig.album_path)
 
     # Generate an array of all track data.  Each entry is either DISC_DELIMITER
     # or a list [name, track number within its set, set number].  Also generate
@@ -193,10 +164,12 @@ def is_metatrack(track_name):
 def write_playlists(playlists):
     all_tracks = []
 
-    if not args.rename: os.makedirs(os.path.join(args.music, args.album))
+    if not djconfig.rename: os.makedirs(os.path.join(djconfig.music_path,
+                                                     djconfig.album_path))
     for playlist in playlists:
-        path = os.path.join(args.music, args.album, playlist['filename'])
-        if args.rename and os.path.exists(path): os.remove(path)
+        path = os.path.join(djconfig.music_path,
+                            djconfig.album_path, playlist['filename'])
+        if djconfig.rename and os.path.exists(path): os.remove(path)
         f = open(path, 'w')
         for track in playlist['tracks']:
             if not is_metatrack(track): f.write(track['filename'] + '\n');
@@ -215,7 +188,7 @@ def divide_tracks_by_disc(tracks):
 
 def rename_files(tracks):
     tracks = [track for track in tracks if not is_metatrack(track)]
-    path = os.path.join(args.music, args.album)
+    path = os.path.join(djconfig.music_path, djconfig.album_path)
     files = [f for f in os.listdir(path) if f.endswith(track_extension)]
     if len(files) != len(tracks):
         raise Exception('Album has %d tracks but directory has %d files' %
@@ -236,7 +209,7 @@ def rename_files(tracks):
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
         subprocess.check_output([
-                args.metaflac_bin,
+                djconfig.bin_metaflac,
                 '--remove-all-tags',
                 '--set-tag=GENRE=%s' % track['genre'],
                 '--set-tag=ARTIST=%s' % track['artist'],
@@ -254,31 +227,32 @@ def dissect_track_path(track_path):
     return (comps[0], comps[-2], comps[-1])
 
 def assert_disc_length(disc_len):
-    discid = subprocess.check_output(args.discid_cmd.split(' '))
+    discid = djplatform.get_discid()
     num_tracks = int(discid.split(b' ')[1])
-    if not args.allow_wrong_length and num_tracks != disc_len:
+    if not djconfig.allow_wrong_length and num_tracks != disc_len:
         print(('Playlist length %d does not match disc length %d'
                         % (disc_len, num_tracks)))
         sys.exit(1)
 
 def assert_first_disc_length(tracks):
     disc_tracksets = divide_tracks_by_disc(tracks)
-    first_disc_tracks = disc_tracksets[args.first_disc - 1]
+    first_disc_tracks = disc_tracksets[djconfig.first_disc - 1]
     assert_disc_length(len(first_disc_tracks))
 
 def rip_and_encode(tracks):
     disc_tracksets = divide_tracks_by_disc(tracks)
 
     num_discs = len(disc_tracksets)
-    disc_num = args.first_disc
+    disc_num = djconfig.first_disc
     linear_num = 1
 
     for disc_tracks in disc_tracksets[disc_num-1:]:
-        if disc_num > args.first_disc:
-            if (args.wait_cmd):
+        if disc_num > djconfig.first_disc:
+            if (djconfig.bin_wait):
                 print(("--- Insert disc %d of %d ---" % (disc_num, num_discs)))
                 with open(os.devnull, 'w') as dev_null:
-                    subprocess.call(args.wait_cmd.split(' '), stdout=dev_null)
+                    subprocess.call(djconfig.bin_wait.split(' '),
+                                    stdout=dev_null)
             else:
                 print(("--- Insert disc %d of %d and hit Enter ---" %
                        (disc_num, num_discs)))
@@ -295,14 +269,14 @@ def rip_and_encode(tracks):
             if track['set']: print(('from ' + track['set']))
             print()
 
-            output_file = os.path.join(args.music, args.album,
-                                       track['filename'])
+            output_file = os.path.join(
+                    djconfig.music_path, djconfig.album_path, track['filename'])
             try:
                 rip_proc = subprocess.Popen(
-                        [args.cdparanoia_bin, '%d' % (track_num), '-'],
+                        [djconfig.bin_cdparanoia, '%d' % (track_num), '-'],
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
-                        [args.flac_bin, '-s', '-', '-o', output_file,
+                        [djconfig.bin_flac, '-s', '-', '-o', output_file,
                          '-T', 'TITLE=%s' % (track['title']),
                          '-T', 'ALBUM=%s' % (track['album']),
                          '-T', 'ARTIST=%s' % (track['artist']),
@@ -322,14 +296,15 @@ def rip_and_encode(tracks):
                 raise
             linear_num += 1
 
-        subprocess.check_output(args.eject_cmd.split(' '))
+        djplatform.eject_disc()
 
 djplatform.prevent_sleep()
 
-playlists = make_playlists(os.path.join(args.catalog, args.album))
+playlists = make_playlists(os.path.join(djconfig.catalog_path,
+                                        djconfig.album_path))
 
-if not args.rename: assert_first_disc_length(playlists[0]['tracks'])
-if args.create_playlists: write_playlists(playlists)
+if not djconfig.rename: assert_first_disc_length(playlists[0]['tracks'])
+if djconfig.create_playlists: write_playlists(playlists)
 
-if args.rename: rename_files(playlists[0]['tracks'])
-elif args.rip: rip_and_encode(playlists[0]['tracks'])
+if djconfig.rename: rename_files(playlists[0]['tracks'])
+elif djconfig.rip: rip_and_encode(playlists[0]['tracks'])
