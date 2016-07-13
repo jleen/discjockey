@@ -29,9 +29,9 @@ def prevent_sleep():
 ##
 
 def _get_cdrom_device_if_drive_ready():
-    ret = subprocess.check_output(['/usr/bin/drutil', 'status'])
+    ret = subprocess.check_output(['/usr/bin/drutil', 'status']).split(b'\n')[3]
     if 0 > ret.find(b'Name'): return None
-    return ret[1 + ret.find(b'/') :]
+    return ret[ret.find(b'/') :].decode('ascii')
 
 def _disc_ready(cdrom_device):
     if MAC_OS:
@@ -126,6 +126,22 @@ def get_discid():
 
     if MAC_OS:
         cdrom_device = _get_cdrom_device_if_drive_ready()
+        return subprocess.check_output(['/usr/local/bin/cd-discid',
+                                        cdrom_device])
     else:
         cdrom_device = djconfig.dev_cdrom
-    return subprocess.check_output(['/usr/bin/cd-discid', cdrom_device])
+        return subprocess.check_output(['/usr/bin/cd-discid', cdrom_device])
+
+
+def _usr_bin(bin):
+    if MAC_OS: return '/usr/local/bin/' + bin
+    else: return '/usr/bin/' + bin
+
+def default_bin_flac():
+    return _usr_bin('flac')
+
+def default_bin_metaflac():
+    return _usr_bin('metaflac')
+
+def default_bin_cdparanoia():
+    return _usr_bin('cdparanoia')

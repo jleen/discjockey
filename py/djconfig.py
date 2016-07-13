@@ -4,20 +4,22 @@ import argparse
 import configparser
 import os
 
+import djplatform
 
 _parser = argparse.ArgumentParser()
 _parser.add_argument('--music', metavar='DIR')
 _parser.add_argument('--catalog', metavar='PATH')
 _parser.add_argument('--album', metavar='ALBUM')
 _parser.add_argument('--cdparanoia_bin', metavar='PATH',
-                    default='/usr/bin/cdparanoia')
-_parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
+                     default=djplatform.default_bin_cdparanoia())
+_parser.add_argument('--flac_bin', metavar='PATH',
+                     default=djplatform.default_bin_flac())
 _parser.add_argument('--metaflac_bin', metavar='PATH',
-                        default='/usr/bin/metaflac')
+                     default=djplatform.default_bin_cdparanoia())
 _parser.add_argument('--umount_cmd', metavar='CMD')
 _parser.add_argument('--cdrom', metavar='PATH')
-_parser.add_argument('--discid_cmd', metavar='CMD', default='/usr/bin/cd-discid')
-_parser.add_argument('--eject_cmd', metavar='CMD', default='/usr/bin/eject')
+_parser.add_argument('--discid_cmd', metavar='CMD')
+_parser.add_argument('--eject_cmd', metavar='CMD')
 _parser.add_argument('--wait_cmd', metavar='CMD')
 _parser.add_argument('-v', '--verbose', action='count')
 _parser.add_argument('--nocreate_playlists', dest='create_playlists',

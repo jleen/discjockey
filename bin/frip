@@ -5,15 +5,11 @@
 
 [[ -f ~/.dj ]] && . ~/.dj
 
-DWAIT=${DJ_WAIT:-${0%/*}/dwait}
-DEJECT=${DJ_EJECT:-${0%/*}/deject}
-DID=${DID:-${0%/*}/did}
-
 PYTHON=${DJ_PYTHON:-python3}
 MUSIC=${DJ_MUSIC:-~/music}
 CATALOG=${DJ_CATALOG:-~/catalog}
 
-MORE_ARGS=()
+ARGS=()
 
 find_mount() {
     mount \
@@ -41,23 +37,18 @@ if [[ -n $DJ_AFP_MUSIC ]]; then
 fi
     
 if [ "$1" = "-f" ]; then
-    MORE_ARGS+=("--allow_wrong_length")
+    ARGS+=("--allow_wrong_length")
     shift
 fi
 
 if [[ $2 == "m3u" ]]; then
-    MORE_ARGS+=("--rename")
+    ARGS+=("--rename")
 elif [[ -n $2 ]]; then
-    MORE_ARGS+=("--nocreate_playlists" "--first_disc" $2)
+    ARGS+=("--nocreate_playlists" "--first_disc" $2)
 fi
 
 PYTHONPATH="${0%/*}/../py:$PYTHONPATH" $PYTHON -m djrip \
     --album="$1" \
     --catalog="$CATALOG" \
     --music="$MUSIC" \
-    --eject_cmd=$DEJECT \
-    --wait_cmd=$DWAIT \
-    --discid_cmd=$DID \
-    --cdparanoia_bin=cdparanoia \
-    --flac_bin=flac \
-    $MORE_ARGS
+    $ARGS
