@@ -1,6 +1,5 @@
 # Copyright (c) 2014-2016 John Leen
 
-import argparse
 import json
 import os
 import platform

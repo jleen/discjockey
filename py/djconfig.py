@@ -65,6 +65,8 @@ _config.read(os.path.expanduser('~/.djrc'))
 gracenote_client = _config['Gracenote']['client']
 gracenote_user = _config['Gracenote']['user']
 
+editor = _config['Binaries']['editor']
+
 if not catalog_path:
     catalog_path = djplatform.translate_afp_path(_config['Paths']['catalog'])
 if not music_path:
