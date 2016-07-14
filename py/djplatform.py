@@ -29,14 +29,15 @@ def prevent_sleep():
 ##
 
 def _get_cdrom_device_if_drive_ready():
-    ret = subprocess.check_output(['/usr/bin/drutil', 'status']).split(b'\n')[3]
-    if b'Name' not in ret: return None
-    return ret[ret.find(b'/') :].decode('ascii')
+    ret = subprocess.check_output(['/usr/bin/drutil', 'status']).split(b'\n')
+    if len(ret) < 4: return None
+    if b'Name' not in ret[3]: return None
+    return ret[3][ret[3].find(b'/') :].decode('ascii')
 
 def _disc_ready(cdrom_device):
     if MAC_OS:
         ret = subprocess.check_output(['/sbin/mount'])
-        if cdrom_device not in ret:
+        if cdrom_device.encode('utf-8') not in ret:
             subprocess.check_output(['/usr/sbin/diskutil', 'umount',
                                      cdrom_device])
             return False

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import platform
 import subprocess
 import sys
@@ -12,56 +13,94 @@ from xml.etree import ElementTree
 import djconfig
 import djplatform
 
-toc = djplatform.read_toc()
+def get_tracks_from_gracenote():
+    toc = djplatform.read_toc()
 
-cid = djconfig.gracenote_client
-uid = djconfig.gracenote_user
+    cid = djconfig.gracenote_client
+    uid = djconfig.gracenote_user
 
-url = 'https://c' + cid.split('-')[0] + '.web.cddbp.net/webapi/xml/1.0/'
+    url = 'https://c' + cid.split('-')[0] + '.web.cddbp.net/webapi/xml/1.0/'
 
-root = ElementTree.Element('QUERIES')
+    root = ElementTree.Element('QUERIES')
 
-auth = ElementTree.SubElement(root, 'AUTH')
-client = ElementTree.SubElement(auth, 'CLIENT')
-user = ElementTree.SubElement(auth, 'USER')
-client.text = cid
-user.text = uid
+    auth = ElementTree.SubElement(root, 'AUTH')
+    client = ElementTree.SubElement(auth, 'CLIENT')
+    user = ElementTree.SubElement(auth, 'USER')
+    client.text = cid
+    user.text = uid
 
-query = ElementTree.SubElement(root, 'QUERY')
-query.attrib['CMD'] = 'ALBUM_TOC'
-mode = ElementTree.SubElement(query, 'MODE')
-mode.text = 'SINGLE_BEST'  # or SINGLE_BEST_COVER
+    query = ElementTree.SubElement(root, 'QUERY')
+    query.attrib['CMD'] = 'ALBUM_TOC'
+    mode = ElementTree.SubElement(query, 'MODE')
+    mode.text = 'SINGLE_BEST'  # or SINGLE_BEST_COVER
 
-tocNode = ElementTree.SubElement(query, 'TOC')
-offset = ElementTree.SubElement(tocNode, 'OFFSETS')
-offset.text = toc
+    tocNode = ElementTree.SubElement(query, 'TOC')
+    offset = ElementTree.SubElement(tocNode, 'OFFSETS')
+    offset.text = toc
 
-responseObj = urllib.request.urlopen(url, ElementTree.tostring(root))
-responseText = responseObj.read()
-responseTree = ElementTree.fromstring(responseText)
-response = responseTree.find('RESPONSE')
+    responseObj = urllib.request.urlopen(url, ElementTree.tostring(root))
+    responseText = responseObj.read()
+    responseTree = ElementTree.fromstring(responseText)
+    response = responseTree.find('RESPONSE')
 
-status = response.attrib['STATUS']
-if status != 'OK':
-    print("Gracenote couldn't find that disc.")
-    print()
-    print("Queried for %s" % toc)
-    print("Got response %s" % status)
-    sys.exit(2)
+    status = response.attrib['STATUS']
+    if status != 'OK':
+        print("Gracenote couldn't find that disc.")
+        print()
+        print("Queried for %s" % toc)
+        print("Got response %s" % status)
+        sys.exit(2)
 
-album = response.find('ALBUM')
-artist = urllib.parse.unquote(album.findall('ARTIST')[0].text)
-title = urllib.parse.unquote(album.findall('TITLE')[0].text)
-genre = urllib.parse.unquote(album.findall('GENRE')[0].text)
+    album = response.find('ALBUM')
+    artist = urllib.parse.unquote(album.findall('ARTIST')[0].text)
+    title = urllib.parse.unquote(album.findall('TITLE')[0].text)
+    genre = urllib.parse.unquote(album.findall('GENRE')[0].text)
 
-tracks = []
-trackTree = album.findall('TRACK')
-for track in trackTree:
-    tracks.append(urllib.parse.unquote(track.findall('TITLE')[0].text))
+    tracks = []
+    trackTree = album.findall('TRACK')
+    for track in trackTree:
+        tracks.append(urllib.parse.unquote(track.findall('TITLE')[0].text))
 
-if not djconfig.nometa:
-    sys.stdout.buffer.write(('~g %s\n' % genre).encode('utf-8'))
-    sys.stdout.buffer.write(('~r %s\n' % artist).encode('utf-8'))
-    sys.stdout.buffer.write(('~a %s\n' % title).encode('utf-8'))
-    sys.stdout.buffer.write('\n'.encode('utf-8'))
-for track in tracks: sys.stdout.buffer.write(('%s\n' % track).encode('utf-8'))
+    lines = []
+    if not djconfig.nometa:
+        lines.append('~g %s' % genre)
+        lines.append('~r %s' % artist)
+        lines.append('~a %s' % title)
+        lines.append('')
+    for track in tracks:
+        lines.append('%s' % track)
+
+    for line in lines:
+        print(line)
+
+    return lines
+
+
+album = None
+if len(djconfig.args) >= 1: album = djconfig.args[0]
+num_discs = 1
+if len(djconfig.args) >= 2: num_discs = int(djconfig.args[1])
+
+if album and os.path.exists(album): raise Exception('Already exists: ' + album)
+
+djplatform.wait_for_disc()
+
+for disc in range(num_discs):
+    if disc > 0:
+        djplatform.eject_disc()
+        print()
+        print()
+        print('--- Insert disc %d of %d ---' % (disc + 1, num_discs))
+        djplatform.wait_for_disc()
+
+    lines = get_tracks_from_gracenote()
+
+    if album:
+        with open(album, 'a', encoding='utf-8') as f:
+            if disc > 0:
+                f.write('~~~\n')
+            for line in lines:
+                f.write(line)
+                f.write('\n')
+
+if num_discs > 1: djplatform.eject_disc()
