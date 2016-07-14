@@ -27,11 +27,14 @@ _parser.add_argument('--nocreate_playlists', dest='create_playlists',
 _parser.add_argument('--norip', dest='rip', action='store_false')
 _parser.add_argument('--rename', action='store_true')
 _parser.add_argument('-f', '--allow_wrong_length', action='store_true')
-_parser.add_argument('--first_disc', metavar='N', type=int, default=1)
+_parser.add_argument('-d', '--first_disc', metavar='N', type=int, default=1)
 _parser.add_argument('--nometa', action='store_true')
+_parser.add_argument('args', nargs='*')
 
 _args = _parser.parse_args()
 
+
+args = _args.args
 
 dev_cdrom = _args.cdrom
 
@@ -42,7 +45,6 @@ bin_metaflac = _args.metaflac_bin
 bin_cdparanoia = _args.cdparanoia_bin
 bin_flac = _args.flac_bin
 
-album_path = _args.album
 music_path = _args.music
 catalog_path = _args.catalog
 
@@ -63,5 +65,7 @@ _config.read(os.path.expanduser('~/.djrc'))
 gracenote_client = _config['Gracenote']['client']
 gracenote_user = _config['Gracenote']['user']
 
-if not catalog_path: catalog_path = _parse_afp(_config['Paths']['catalog'])
-if not music_path: music_path = _parse_afp(_config['Paths']['music'])
+if not catalog_path:
+    catalog_path = djplatform.translate_afp_path(_config['Paths']['catalog'])
+if not music_path:
+    music_path = djplatform.translate_afp_path(_config['Paths']['music'])

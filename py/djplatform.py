@@ -30,13 +30,13 @@ def prevent_sleep():
 
 def _get_cdrom_device_if_drive_ready():
     ret = subprocess.check_output(['/usr/bin/drutil', 'status']).split(b'\n')[3]
-    if 0 > ret.find(b'Name'): return None
+    if b'Name' not in ret: return None
     return ret[ret.find(b'/') :].decode('ascii')
 
 def _disc_ready(cdrom_device):
     if MAC_OS:
         ret = subprocess.check_output(['/sbin/mount'])
-        if 0 > ret.find(cdrom_device):
+        if cdrom_device not in ret:
             subprocess.check_output(['/usr/sbin/diskutil', 'umount',
                                      cdrom_device])
             return False
@@ -46,12 +46,12 @@ def _disc_ready(cdrom_device):
         ret = subprocess.check_output(
                 ['/usr/bin/cd-discid', djconfig.dev_cdrom],
                 stderr=subprocess.STDOUT)
-        return 0 > ret.find(b'No medium found')
+        return b'No medium found' not in ret
     elif CYGWIN:
         ret = subprocess.check_output(
                 ['/usr/bin/cdrecord', '-toc'],
                 stderr=subprocess.STDOUT)
-        return 0 > ret.find(b'Cannot load media')
+        return b'Cannot load media' not in ret
 
 def wait_for_disc():
     if djconfig.bin_wait:
@@ -145,3 +145,24 @@ def default_bin_metaflac():
 
 def default_bin_cdparanoia():
     return _usr_bin('cdparanoia')
+
+def translate_afp_path(specibus):
+    # Maybe this isn't an afp path at all.
+    if ':' not in specibus: return specibus
+
+    # It is! Make sure we can handle it.
+    if not MAC_OS: raise('afp is only supported on Mac OS')
+
+    sylladex = specibus.split(':')
+    afp_host = sylladex[0]
+    afp_share = sylladex[1]
+    afp_dir = ''
+    if len(sylladex) > 2: afp_dir = '/' + sylladex[2]
+
+    # TODO(jleen): Can we do this through some Cocoa API?
+    mounts = subprocess.check_output('/sbin/mount').decode('utf-8')
+    for line in mounts.split('\n'):
+        if 'auto' in line: continue
+        if afp_host not in line: continue
+        if afp_share not in line: continue
+        return line.split(' ')[2] + afp_dir

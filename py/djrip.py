@@ -298,10 +298,12 @@ def rip_and_encode(tracks):
 
         djplatform.eject_disc()
 
+# TODO(jleen): Is it worth dispatching to wrip automatically?
+if djplatform.CYGWIN: raise('Please use wrip instead')
 djplatform.prevent_sleep()
 
-playlists = make_playlists(os.path.join(djconfig.catalog_path,
-                                        djconfig.album_path))
+album_path = djconfig.args[0]
+playlists = make_playlists(os.path.join(djconfig.catalog_path, album_path))
 
 if not djconfig.rename: assert_first_disc_length(playlists[0]['tracks'])
 if djconfig.create_playlists: write_playlists(playlists)
