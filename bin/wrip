@@ -21,7 +21,7 @@ for disc in {01..$num_discs}; do
     [[ $disc -lt $first_disc ]] && continue
 
     echo "--- Insert disc $(($disc)) of $num_discs ---"
-    dwait
+    while cdrecord -toc 2>&1 | grep -q 'Cannot load media'; do sleep 1; done
     echo "Ripping via external ripper..."
     $DJ_EXTERNAL_RIPPER
     cdrecord -eject > /dev/null 2>&1
