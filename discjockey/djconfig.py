@@ -4,7 +4,7 @@ import argparse
 import configparser
 import os
 
-import djplatform
+from discjockey import djplatform
 
 _parser = argparse.ArgumentParser()
 _parser.add_argument('--music', metavar='DIR')

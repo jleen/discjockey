@@ -4,7 +4,7 @@ import platform
 import subprocess
 import time
 
-import djconfig
+from discjockey import djconfig
 
 MAC_OS = platform.system() == 'Darwin'
 LINUX = platform.system() == 'Linux'
@@ -20,7 +20,7 @@ if not (MAC_OS or LINUX or CYGWIN): raise 'Unknown platform'
 
 def prevent_sleep():
     if MAC_OS:
-        import pmset
+        from discjockey import pmset
         pmset.prevent_idle_sleep('Disc Jockey Rip')
 
 

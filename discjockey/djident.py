@@ -9,8 +9,8 @@ import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 from xml.etree import ElementTree
 
-import djconfig
-import djplatform
+from discjockey import djconfig
+from discjockey import djplatform
 
 def get_tracks_from_gracenote():
     toc = djplatform.read_toc()

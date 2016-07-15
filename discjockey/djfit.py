@@ -3,8 +3,8 @@
 import os
 import subprocess
 
-import djconfig
-import djplatform
+from discjockey import djconfig
+from discjockey import djplatform
 
 album = djconfig.args[0]
 num_discs = 1
@@ -14,7 +14,7 @@ print('--- Insert first disc ---')
 djplatform.wait_for_disc()
 
 if not os.path.exists(album):
-    import djident
+    import discjockey.djident
 
     if djconfig.editor:
         subprocess.check_output(djconfig.editor.split(' ') + [ album ])
@@ -27,4 +27,4 @@ if num_discs > 1:
     print('--- Re-insert first disc ---')
     djplatform.wait_for_disc()
 
-import djrip
+import discjockey.djrip
