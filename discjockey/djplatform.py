@@ -44,10 +44,10 @@ def _disc_ready(cdrom_device):
         else:
             return True
     elif LINUX:
-        ret = subprocess.check_output(
+        ret = subprocess.call(
                 ['/usr/bin/cd-discid', djconfig.dev_cdrom],
-                stderr=subprocess.STDOUT)
-        return b'No medium found' not in ret
+                stderr=subprocess.DEVNULL)
+        return not ret
     elif CYGWIN:
         ret = subprocess.check_output(
                 ['/usr/bin/cdrecord', '-toc'],
@@ -59,8 +59,8 @@ def wait_for_disc():
         subprocess.check_output(djconfig.bin_wait.split(' '))
         return
 
+    cdrom_device = None
     if MAC_OS:
-        cdrom_device = None
         while True:
             cdrom_device = _get_cdrom_device_if_drive_ready()
             if cdrom_device: break

@@ -32,6 +32,7 @@ _args = _parser.parse_args()
 args = _args.args
 
 dev_cdrom = _args.cdrom
+if not dev_cdrom: dev_cdrom = '/dev/cdrom'
 
 bin_wait = _args.wait_cmd
 bin_eject = _args.eject_cmd
@@ -60,7 +61,10 @@ _config.read(os.path.expanduser('~/.djrc'))
 gracenote_client = _config['Gracenote']['client']
 gracenote_user = _config['Gracenote']['user']
 
-editor = _config['Binaries']['editor']
+if 'Binaries' in _config:
+    editor = _config['Binaries']['editor']
+else:
+    editor = 'vi'
 
 if not catalog_path:
     catalog_path = _config['Paths']['catalog']
