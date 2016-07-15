@@ -39,56 +39,58 @@ def decrement_index(i, lines):
     return i
 
 
-lines = []
+def cosmetize():
+    lines = []
 
-for line in sys.stdin:
-    if len(line) > 1 and not re.match(r'^~\w', line):
-        lines += [ [line.rstrip(), None, 0] ]
+    for line in sys.stdin:
+        if len(line) > 1 and not re.match(r'^~\w', line):
+            lines += [ [line.rstrip(), None, 0] ]
 
-prefix = None
+    prefix = None
 
-for (i, line) in enumerate(lines[1:], 1):
-    if line[0] == DISC_DELIMITER: continue
-    iMinus1 = decrement_index(i, lines)
-
-    if prefix:
-        if line[0].startswith(prefix):
-            # This is another track in the current set.
-            lines[i][2] = lines[iMinus1][2]
-        else:
-            # The set has ended.
-            prefix = None
-            lines[iMinus1][1] = END_OF_SET
-    else:
-        new_prefix = longest_common_prefix(line[0], lines[iMinus1][0])
-        if new_prefix and len(new_prefix) > MIN_PREFIX_LEN:
-            # This track and the previous look like the beginning of a new set.
-            (prefix, strip_len) = sanitize_prefix(new_prefix)
-            iMinus2 = decrement_index(iMinus1, lines)
-            if iMinus2 >= 0:
-                lines[iMinus2][1] = END_OF_SET
-            if iMinus1 >= 0:
-                lines[iMinus1][1] = prefix
-                lines[iMinus1][2] = strip_len
-            lines[i][2] = strip_len
-
-prefix = None
-for (line, new_prefix, strip_len) in lines:
-    if line == DISC_DELIMITER:
-        print(DISC_DELIMITER)
-        assert not new_prefix
-        assert not strip_len
-    else:
-        if new_prefix and new_prefix != END_OF_SET:
-            prefix = new_prefix
-            print('* %s' % prefix)
+    for (i, line) in enumerate(lines[1:], 1):
+        if line[0] == DISC_DELIMITER: continue
+        iMinus1 = decrement_index(i, lines)
 
         if prefix:
-            assert line.startswith(prefix)
-            print(beautify(line[strip_len:]))
+            if line[0].startswith(prefix):
+                # This is another track in the current set.
+                lines[i][2] = lines[iMinus1][2]
+            else:
+                # The set has ended.
+                prefix = None
+                lines[iMinus1][1] = END_OF_SET
         else:
-            print(beautify(line))
+            new_prefix = longest_common_prefix(line[0], lines[iMinus1][0])
+            if new_prefix and len(new_prefix) > MIN_PREFIX_LEN:
+                # This track and the previous look like the beginning of a
+                # new set.
+                (prefix, strip_len) = sanitize_prefix(new_prefix)
+                iMinus2 = decrement_index(iMinus1, lines)
+                if iMinus2 >= 0:
+                    lines[iMinus2][1] = END_OF_SET
+                if iMinus1 >= 0:
+                    lines[iMinus1][1] = prefix
+                    lines[iMinus1][2] = strip_len
+                lines[i][2] = strip_len
 
-    if new_prefix == END_OF_SET:
-        prefix = None
-        print()
+    prefix = None
+    for (line, new_prefix, strip_len) in lines:
+        if line == DISC_DELIMITER:
+            print(DISC_DELIMITER)
+            assert not new_prefix
+            assert not strip_len
+        else:
+            if new_prefix and new_prefix != END_OF_SET:
+                prefix = new_prefix
+                print('* %s' % prefix)
+
+            if prefix:
+                assert line.startswith(prefix)
+                print(beautify(line[strip_len:]))
+            else:
+                print(beautify(line))
+
+        if new_prefix == END_OF_SET:
+            prefix = None
+            print()

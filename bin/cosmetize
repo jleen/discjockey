@@ -1,3 +1,0 @@
-#!/bin/sh
-PYTHONPATH="`dirname "$0"`/../py:$PYTHONPATH" \
-    python3 -m djbeautify `basename "$0"` "$@"

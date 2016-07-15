@@ -75,31 +75,33 @@ def get_tracks_from_gracenote():
     return lines
 
 
-album = None
-if len(djconfig.args) >= 1: album = djconfig.args[0]
-num_discs = 1
-if len(djconfig.args) >= 2: num_discs = int(djconfig.args[1])
+def ident():
+    album = None
+    if len(djconfig.args) >= 1: album = djconfig.args[0]
+    num_discs = 1
+    if len(djconfig.args) >= 2: num_discs = int(djconfig.args[1])
 
-if album and os.path.exists(album): raise Exception('Already exists: ' + album)
+    if album and os.path.exists(album):
+        raise Exception('Already exists: ' + album)
 
-djplatform.wait_for_disc()
+    djplatform.wait_for_disc()
 
-for disc in range(num_discs):
-    if disc > 0:
-        djplatform.eject_disc()
-        print()
-        print()
-        print('--- Insert disc %d of %d ---' % (disc + 1, num_discs))
-        djplatform.wait_for_disc()
+    for disc in range(num_discs):
+        if disc > 0:
+            djplatform.eject_disc()
+            print()
+            print()
+            print('--- Insert disc %d of %d ---' % (disc + 1, num_discs))
+            djplatform.wait_for_disc()
 
-    lines = get_tracks_from_gracenote()
+        lines = get_tracks_from_gracenote()
 
-    if album:
-        with open(album, 'a', encoding='utf-8') as f:
-            if disc > 0:
-                f.write('~~~\n')
-            for line in lines:
-                f.write(line)
-                f.write('\n')
+        if album:
+            with open(album, 'a', encoding='utf-8') as f:
+                if disc > 0:
+                    f.write('~~~\n')
+                for line in lines:
+                    f.write(line)
+                    f.write('\n')
 
-if num_discs > 1: djplatform.eject_disc()
+    if num_discs > 1: djplatform.eject_disc()
