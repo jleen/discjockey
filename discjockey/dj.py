@@ -9,52 +9,58 @@ import shutil
 import subprocess
 import sys
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--music', metavar='DIR', action='append')
-parser.add_argument('--cache', metavar='DIR')
-parser.add_argument('--mp3', action='store_true')
-parser.add_argument('--ogg_quality', type=int, default=5)
-parser.add_argument('--mirror', action='store_true')
-parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
-parser.add_argument('--oggdec_bin', metavar='PATH', default='/usr/bin/oggdec')
-parser.add_argument('--ogginfo_bin', metavar='PATH', default='/usr/bin/ogginfo')
-parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
-parser.add_argument('--lame_bin', metavar='PATH', default='/usr/bin/lame')
-parser.add_argument('--file_bin', metavar='PATH', default='/usr/bin/file')
-parser.add_argument('--metaflac_bin', metavar='PATH',
-                        default='/usr/bin/metaflac')
-parser.add_argument('-v', '--verbose', action='count')
-parser.add_argument('--force_playlists', action='store_true')
-parser.add_argument('--keep_sigil', metavar='FILENAME', action='append')
-parser.add_argument('--sigil', metavar='FILENAME')
-parser.add_argument('--skip_dir', metavar='DIR', action='append')
-
-args = parser.parse_args()
-
-if args.verbose and args.verbose >= 2: log_level = logging.DEBUG
-elif args.verbose and args.verbose >= 1: log_level = logging.INFO
-else: log_level = logging.WARNING
-logging.basicConfig(level=log_level, format='%(message)s')
-
 lossless_formats = [ '.flac', '.wav' ]
 boring_formats = [ '.mp3', '.m4a', '.wma' ]
 
-if args.mp3:
-    if args.mirror: raise Exception("Can't have both --mirror and --mp3")
-    transcode_formats = lossless_formats + [ '.ogg' ]
-    okay_formats = boring_formats
-    output_format = '.mp3'
-elif args.mirror:
-    transcode_formats = []
-    okay_formats = boring_formats + lossless_formats + [ '.ogg' ]
-    output_format = None
-else:
-    transcode_formats = lossless_formats
-    okay_formats = boring_formats + [ '.ogg' ]
-    output_format = '.ogg'
+def prep():
+    global args, transcode_formats, okay_formats, output_format
+    global music_formats, link_extns
 
-music_formats = okay_formats + transcode_formats
-link_extns = okay_formats
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--music', metavar='DIR', action='append')
+    parser.add_argument('--cache', metavar='DIR')
+    parser.add_argument('--mp3', action='store_true')
+    parser.add_argument('--ogg_quality', type=int, default=5)
+    parser.add_argument('--mirror', action='store_true')
+    parser.add_argument('--ogg_bin', metavar='PATH', default='/usr/bin/oggenc')
+    parser.add_argument('--oggdec_bin', metavar='PATH',
+                            default='/usr/bin/oggdec')
+    parser.add_argument('--ogginfo_bin', metavar='PATH',
+                            default='/usr/bin/ogginfo')
+    parser.add_argument('--flac_bin', metavar='PATH', default='/usr/bin/flac')
+    parser.add_argument('--lame_bin', metavar='PATH', default='/usr/bin/lame')
+    parser.add_argument('--file_bin', metavar='PATH', default='/usr/bin/file')
+    parser.add_argument('--metaflac_bin', metavar='PATH',
+                            default='/usr/bin/metaflac')
+    parser.add_argument('-v', '--verbose', action='count')
+    parser.add_argument('--force_playlists', action='store_true')
+    parser.add_argument('--keep_sigil', metavar='FILENAME', action='append')
+    parser.add_argument('--sigil', metavar='FILENAME')
+    parser.add_argument('--skip_dir', metavar='DIR', action='append')
+
+    args = parser.parse_args()
+
+    if args.verbose and args.verbose >= 2: log_level = logging.DEBUG
+    elif args.verbose and args.verbose >= 1: log_level = logging.INFO
+    else: log_level = logging.WARNING
+    logging.basicConfig(level=log_level, format='%(message)s')
+
+    if args.mp3:
+        if args.mirror: raise Exception("Can't have both --mirror and --mp3")
+        transcode_formats = lossless_formats + [ '.ogg' ]
+        okay_formats = boring_formats
+        output_format = '.mp3'
+    elif args.mirror:
+        transcode_formats = []
+        okay_formats = boring_formats + lossless_formats + [ '.ogg' ]
+        output_format = None
+    else:
+        transcode_formats = lossless_formats
+        okay_formats = boring_formats + [ '.ogg' ]
+        output_format = '.ogg'
+
+    music_formats = okay_formats + transcode_formats
+    link_extns = okay_formats
 
 def cache_path(*pathcomps): return os.path.join(args.cache, *pathcomps)
 
@@ -494,5 +500,6 @@ def update_cache():
                           os.path.join(rel_dir, filename) not in m3u_referents):
                     remove_spurious_file(path)
 
-
-update_cache()
+if __name__ == "__main__":
+    prep()
+    update_cache()
