@@ -138,14 +138,17 @@ def _usr_bin(bin):
     if MAC_OS: return '/usr/local/bin/' + bin
     else: return '/usr/bin/' + bin
 
-def default_bin_flac():
-    return _usr_bin('flac')
+def bin_flac():
+    if djconfig.bin_flac: return djconfig.bin_flac
+    else: return _usr_bin('flac')
 
-def default_bin_metaflac():
-    return _usr_bin('metaflac')
+def bin_metaflac():
+    if djconfig.bin_metaflac: return djconfig.bin_metaflac
+    else: return _usr_bin('metaflac')
 
-def default_bin_cdparanoia():
-    return _usr_bin('cdparanoia')
+def bin_cdparanoia():
+    if djconfig.bin_cdparanoia: return djconfig.bin_cdparanoia
+    else: return _usr_bin('cdparanoia')
 
 def translate_afp_path(specibus):
     # Maybe this isn't an afp path at all.
@@ -167,3 +170,6 @@ def translate_afp_path(specibus):
         if afp_host not in line: continue
         if afp_share not in line: continue
         return line.split(' ')[2] + afp_dir
+
+catalog_path = translate_afp_path(djconfig.catalog_path)
+music_path = translate_afp_path(djconfig.music_path)

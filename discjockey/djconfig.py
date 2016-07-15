@@ -4,18 +4,13 @@ import argparse
 import configparser
 import os
 
-from discjockey import djplatform
-
 _parser = argparse.ArgumentParser()
 _parser.add_argument('--music', metavar='DIR')
 _parser.add_argument('--catalog', metavar='PATH')
 _parser.add_argument('--album', metavar='ALBUM')
-_parser.add_argument('--cdparanoia_bin', metavar='PATH',
-                     default=djplatform.default_bin_cdparanoia())
-_parser.add_argument('--flac_bin', metavar='PATH',
-                     default=djplatform.default_bin_flac())
-_parser.add_argument('--metaflac_bin', metavar='PATH',
-                     default=djplatform.default_bin_cdparanoia())
+_parser.add_argument('--cdparanoia_bin', metavar='PATH')
+_parser.add_argument('--flac_bin', metavar='PATH')
+_parser.add_argument('--metaflac_bin', metavar='PATH')
 _parser.add_argument('--umount_cmd', metavar='CMD')
 _parser.add_argument('--cdrom', metavar='PATH')
 _parser.add_argument('--discid_cmd', metavar='CMD')
@@ -68,6 +63,6 @@ gracenote_user = _config['Gracenote']['user']
 editor = _config['Binaries']['editor']
 
 if not catalog_path:
-    catalog_path = djplatform.translate_afp_path(_config['Paths']['catalog'])
+    catalog_path = _config['Paths']['catalog']
 if not music_path:
-    music_path = djplatform.translate_afp_path(_config['Paths']['music'])
+    music_path = _config['Paths']['music']
