@@ -5,9 +5,9 @@ setup(
     version = '0.1',
     packages = [ 'discjockey' ],
     entry_points = {
-        'console_scripts': [ 'frip = discjockey.djrip:rip',
-                             'fident = discjockey.djident:ident',
-                             'fit = discjockey.djfit:fit',
-                             'cosmetize = discjockey.djbeautify:cosmetize' ]
+        'console_scripts': [ 'frip = discjockey.rip:rip',
+                             'fident = discjockey.ident:ident',
+                             'fit = discjockey.fit:fit',
+                             'cosmetize = discjockey.beautify:cosmetize' ]
     },
 )

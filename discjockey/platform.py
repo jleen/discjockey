@@ -4,7 +4,7 @@ import platform
 import subprocess
 import time
 
-from discjockey import djconfig
+from discjockey import config
 
 MAC_OS = platform.system() == 'Darwin'
 LINUX = platform.system() == 'Linux'
@@ -45,7 +45,7 @@ def _disc_ready(cdrom_device):
             return True
     elif LINUX:
         ret = subprocess.call(
-                ['/usr/bin/cd-discid', djconfig.dev_cdrom],
+                ['/usr/bin/cd-discid', config.dev_cdrom],
                 stderr=subprocess.DEVNULL)
         return not ret
     elif CYGWIN:
@@ -55,8 +55,8 @@ def _disc_ready(cdrom_device):
         return b'Cannot load media' not in ret
 
 def wait_for_disc():
-    if djconfig.bin_wait:
-        subprocess.check_output(djconfig.bin_wait.split(' '))
+    if config.bin_wait:
+        subprocess.check_output(config.bin_wait.split(' '))
         return
 
     cdrom_device = None
@@ -75,8 +75,8 @@ def wait_for_disc():
 ##
 
 def eject_disc():
-    if djconfig.bin_eject:
-        subprocess.check_output(djconfig.bin_eject.split(' '))
+    if config.bin_eject:
+        subprocess.check_output(config.bin_eject.split(' '))
     elif MAC_OS: 
         subprocess.check_output(['/usr/bin/drutil', 'eject'])
     elif LINUX:
@@ -122,15 +122,15 @@ def read_toc():
 ##
 
 def get_discid():
-    if djconfig.bin_discid:
-        return subprocess.check_output(djconfig.bin_discid.split(' '))
+    if config.bin_discid:
+        return subprocess.check_output(config.bin_discid.split(' '))
 
     if MAC_OS:
         cdrom_device = _get_cdrom_device_if_drive_ready()
         return subprocess.check_output(['/usr/local/bin/cd-discid',
                                         cdrom_device])
     else:
-        cdrom_device = djconfig.dev_cdrom
+        cdrom_device = config.dev_cdrom
         return subprocess.check_output(['/usr/bin/cd-discid', cdrom_device])
 
 
@@ -139,15 +139,15 @@ def _usr_bin(bin):
     else: return '/usr/bin/' + bin
 
 def bin_flac():
-    if djconfig.bin_flac: return djconfig.bin_flac
+    if config.bin_flac: return config.bin_flac
     else: return _usr_bin('flac')
 
 def bin_metaflac():
-    if djconfig.bin_metaflac: return djconfig.bin_metaflac
+    if config.bin_metaflac: return config.bin_metaflac
     else: return _usr_bin('metaflac')
 
 def bin_cdparanoia():
-    if djconfig.bin_cdparanoia: return djconfig.bin_cdparanoia
+    if config.bin_cdparanoia: return config.bin_cdparanoia
     else: return _usr_bin('cdparanoia')
 
 def translate_afp_path(specibus):
@@ -171,5 +171,5 @@ def translate_afp_path(specibus):
         if afp_share not in line: continue
         return line.split(' ')[2] + afp_dir
 
-catalog_path = translate_afp_path(djconfig.catalog_path)
-music_path = translate_afp_path(djconfig.music_path)
+catalog_path = translate_afp_path(config.catalog_path)
+music_path = translate_afp_path(config.music_path)

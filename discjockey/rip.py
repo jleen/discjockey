@@ -6,8 +6,8 @@ import sys
 import unicodedata
 import uuid
 
-from discjockey import djconfig
-from discjockey import djplatform
+from discjockey import config
+from discjockey import platform
 
 playlist_extension = '.m3u'
 track_extension = '.flac'
@@ -66,7 +66,7 @@ def make_playlists(filename):
     current_set = None
 
     # Get some default metadata from the album pathname.
-    (genre, artist, album) = dissect_track_path(djconfig.album_path)
+    (genre, artist, album) = dissect_track_path(config.album_path)
 
     # Generate an array of all track data.  Each entry is either DISC_DELIMITER
     # or a list [name, track number within its set, set number].  Also generate
@@ -164,12 +164,12 @@ def is_metatrack(track_name):
 def write_playlists(playlists):
     all_tracks = []
 
-    if not djconfig.rename: os.makedirs(os.path.join(djplatform.music_path,
-                                                     djconfig.album_path))
+    if not config.rename: os.makedirs(os.path.join(platform.music_path,
+                                                   config.album_path))
     for playlist in playlists:
-        path = os.path.join(djplatform.music_path,
-                            djconfig.album_path, playlist['filename'])
-        if djconfig.rename and os.path.exists(path): os.remove(path)
+        path = os.path.join(platform.music_path,
+                            config.album_path, playlist['filename'])
+        if config.rename and os.path.exists(path): os.remove(path)
         f = open(path, 'w')
         for track in playlist['tracks']:
             if not is_metatrack(track): f.write(track['filename'] + '\n');
@@ -188,7 +188,7 @@ def divide_tracks_by_disc(tracks):
 
 def rename_files(tracks):
     tracks = [track for track in tracks if not is_metatrack(track)]
-    path = os.path.join(djplatform.music_path, djconfig.album_path)
+    path = os.path.join(platform.music_path, config.album_path)
     files = [f for f in os.listdir(path) if f.endswith(track_extension)]
     if len(files) != len(tracks):
         raise Exception('Album has %d tracks but directory has %d files' %
@@ -209,7 +209,7 @@ def rename_files(tracks):
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
         subprocess.check_output([
-                djplatform.bin_metaflac(),
+                platform.bin_metaflac(),
                 '--remove-all-tags',
                 '--set-tag=GENRE=%s' % track['genre'],
                 '--set-tag=ARTIST=%s' % track['artist'],
@@ -227,31 +227,31 @@ def dissect_track_path(track_path):
     return (comps[0], comps[-2], comps[-1])
 
 def assert_disc_length(disc_len):
-    discid = djplatform.get_discid()
+    discid = platform.get_discid()
     num_tracks = int(discid.split(b' ')[1])
-    if not djconfig.allow_wrong_length and num_tracks != disc_len:
+    if not config.allow_wrong_length and num_tracks != disc_len:
         print(('Playlist length %d does not match disc length %d'
                         % (disc_len, num_tracks)))
         sys.exit(1)
 
 def assert_first_disc_length(tracks):
     disc_tracksets = divide_tracks_by_disc(tracks)
-    first_disc_tracks = disc_tracksets[djconfig.first_disc - 1]
+    first_disc_tracks = disc_tracksets[config.first_disc - 1]
     assert_disc_length(len(first_disc_tracks))
 
 def rip_and_encode(tracks):
     disc_tracksets = divide_tracks_by_disc(tracks)
 
     num_discs = len(disc_tracksets)
-    disc_num = djconfig.first_disc
+    disc_num = config.first_disc
     linear_num = 1
 
     for disc_tracks in disc_tracksets[disc_num-1:]:
-        if disc_num > djconfig.first_disc:
-            if (djplatform.bin_wait()):
+        if disc_num > config.first_disc:
+            if (platform.bin_wait()):
                 print(("--- Insert disc %d of %d ---" % (disc_num, num_discs)))
                 with open(os.devnull, 'w') as dev_null:
-                    subprocess.call(djplatform.bin_wait().split(' '),
+                    subprocess.call(platform.bin_wait().split(' '),
                                     stdout=dev_null)
             else:
                 print(("--- Insert disc %d of %d and hit Enter ---" %
@@ -270,14 +270,14 @@ def rip_and_encode(tracks):
             print()
 
             output_file = os.path.join(
-                    djplatform.music_path, djconfig.album_path,
+                    platform.music_path, config.album_path,
                     track['filename'])
             try:
                 rip_proc = subprocess.Popen(
-                        [djplatform.bin_cdparanoia(), '%d' % (track_num), '-'],
+                        [platform.bin_cdparanoia(), '%d' % (track_num), '-'],
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
-                        [djplatform.bin_flac(), '-s', '-', '-o', output_file,
+                        [platform.bin_flac(), '-s', '-', '-o', output_file,
                          '-T', 'TITLE=%s' % (track['title']),
                          '-T', 'ALBUM=%s' % (track['album']),
                          '-T', 'ARTIST=%s' % (track['artist']),
@@ -297,19 +297,19 @@ def rip_and_encode(tracks):
                 raise
             linear_num += 1
 
-        djplatform.eject_disc()
+        platform.eject_disc()
 
 def rip():
     # TODO(jleen): Is it worth dispatching to wrip automatically?
-    if djplatform.CYGWIN: raise('Please use wrip instead')
-    djplatform.prevent_sleep()
+    if platform.CYGWIN: raise('Please use wrip instead')
+    platform.prevent_sleep()
 
-    album_path = djconfig.args[0]
-    playlists = make_playlists(os.path.join(djplatform.catalog_path,
+    album_path = config.args[0]
+    playlists = make_playlists(os.path.join(platform.catalog_path,
                                             album_path))
 
-    if not djconfig.rename: assert_first_disc_length(playlists[0]['tracks'])
-    if djconfig.create_playlists: write_playlists(playlists)
+    if not config.rename: assert_first_disc_length(playlists[0]['tracks'])
+    if config.create_playlists: write_playlists(playlists)
 
-    if djconfig.rename: rename_files(playlists[0]['tracks'])
-    elif djconfig.rip: rip_and_encode(playlists[0]['tracks'])
+    if config.rename: rename_files(playlists[0]['tracks'])
+    elif config.rip: rip_and_encode(playlists[0]['tracks'])

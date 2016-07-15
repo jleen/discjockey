@@ -9,14 +9,14 @@ import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 from xml.etree import ElementTree
 
-from discjockey import djconfig
-from discjockey import djplatform
+from discjockey import config
+from discjockey import platform as djplatform
 
 def get_tracks_from_gracenote():
     toc = djplatform.read_toc()
 
-    cid = djconfig.gracenote_client
-    uid = djconfig.gracenote_user
+    cid = config.gracenote_client
+    uid = config.gracenote_user
 
     url = 'https://c' + cid.split('-')[0] + '.web.cddbp.net/webapi/xml/1.0/'
 
@@ -61,7 +61,7 @@ def get_tracks_from_gracenote():
         tracks.append(urllib.parse.unquote(track.findall('TITLE')[0].text))
 
     lines = []
-    if not djconfig.nometa:
+    if not config.nometa:
         lines.append('~g %s' % genre)
         lines.append('~r %s' % artist)
         lines.append('~a %s' % title)
@@ -77,9 +77,9 @@ def get_tracks_from_gracenote():
 
 def ident():
     album = None
-    if len(djconfig.args) >= 1: album = djconfig.args[0]
+    if len(config.args) >= 1: album = config.args[0]
     num_discs = 1
-    if len(djconfig.args) >= 2: num_discs = int(djconfig.args[1])
+    if len(config.args) >= 2: num_discs = int(config.args[1])
 
     if album and os.path.exists(album):
         raise Exception('Already exists: ' + album)
