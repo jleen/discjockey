@@ -66,7 +66,7 @@ def make_playlists(filename):
     current_set = None
 
     # Get some default metadata from the album pathname.
-    (genre, artist, album) = dissect_track_path(config.album_path)
+    (genre, artist, album) = dissect_track_path(album_path)
 
     # Generate an array of all track data.  Each entry is either DISC_DELIMITER
     # or a list [name, track number within its set, set number].  Also generate
@@ -165,10 +165,10 @@ def write_playlists(playlists):
     all_tracks = []
 
     if not config.rename: os.makedirs(os.path.join(platform.music_path,
-                                                   config.album_path))
+                                                   album_path))
     for playlist in playlists:
         path = os.path.join(platform.music_path,
-                            config.album_path, playlist['filename'])
+                            album_path, playlist['filename'])
         if config.rename and os.path.exists(path): os.remove(path)
         f = open(path, 'w')
         for track in playlist['tracks']:
@@ -188,7 +188,7 @@ def divide_tracks_by_disc(tracks):
 
 def rename_files(tracks):
     tracks = [track for track in tracks if not is_metatrack(track)]
-    path = os.path.join(platform.music_path, config.album_path)
+    path = os.path.join(platform.music_path, album_path)
     files = [f for f in os.listdir(path) if f.endswith(track_extension)]
     if len(files) != len(tracks):
         raise Exception('Album has %d tracks but directory has %d files' %
@@ -270,7 +270,7 @@ def rip_and_encode(tracks):
             print()
 
             output_file = os.path.join(
-                    platform.music_path, config.album_path,
+                    platform.music_path, album_path,
                     track['filename'])
             try:
                 rip_proc = subprocess.Popen(
@@ -304,6 +304,7 @@ def rip():
     if platform.CYGWIN: raise('Please use wrip instead')
     platform.prevent_sleep()
 
+    global album_path
     album_path = config.args[0]
     playlists = make_playlists(os.path.join(platform.catalog_path,
                                             album_path))
