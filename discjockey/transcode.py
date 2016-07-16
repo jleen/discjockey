@@ -500,6 +500,6 @@ def update_cache():
                           os.path.join(rel_dir, filename) not in m3u_referents):
                     remove_spurious_file(path)
 
-if __name__ == "__main__":
+def transcode():
     prep()
     update_cache()
