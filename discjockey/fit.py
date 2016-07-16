@@ -1,6 +1,7 @@
 # Copyright (c) 2016 John Leen
 
 import os
+import shlex
 import subprocess
 
 from discjockey import config, ident, platform, rip
@@ -17,7 +18,7 @@ def fit():
         ident.ident()
 
         if config.editor:
-            subprocess.check_output(config.editor.split(' ') + [ album ])
+            os.system(config.editor + ' ' + shlex.quote(album))
         else:
             raise Exception('Default editor not implemented')
 
