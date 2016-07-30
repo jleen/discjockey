@@ -101,6 +101,8 @@ def ident():
         lines = get_tracks_from_gracenote()
 
         if album:
+            if not os.path.exists(os.path.dirname(album)):
+                os.makedirs(os.path.dirname(album))
             with open(album, 'a', encoding='utf-8') as f:
                 if disc > 0:
                     f.write('~~~\n')
