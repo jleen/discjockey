@@ -18,7 +18,7 @@ _parser.add_argument('--eject_cmd', metavar='CMD')
 _parser.add_argument('--wait_cmd', metavar='CMD')
 _parser.add_argument('-v', '--verbose', action='count')
 _parser.add_argument('--nocreate_playlists', dest='create_playlists',
-                    action='store_false')
+                     action='store_false')
 _parser.add_argument('--norip', dest='rip', action='store_false')
 _parser.add_argument('--rename', action='store_true')
 _parser.add_argument('-f', '--allow_wrong_length', action='store_true')
@@ -28,11 +28,11 @@ _parser.add_argument('args', nargs='*')
 
 _args = _parser.parse_args()
 
-
 args = _args.args
 
 dev_cdrom = _args.cdrom
-if not dev_cdrom: dev_cdrom = '/dev/cdrom'
+if not dev_cdrom:
+    dev_cdrom = '/dev/cdrom'
 
 bin_wait = _args.wait_cmd
 bin_eject = _args.eject_cmd
@@ -54,6 +54,7 @@ nometa = _args.nometa
 
 def _parse_afp(specibus):
     return specibus
+
 
 _config = configparser.ConfigParser()
 _config.read(os.path.expanduser('~/.djrc'))

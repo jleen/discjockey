@@ -51,7 +51,7 @@ fi
 
 time_hack=$((3600 * 8 + 2))  # max(PST, PDT) + FAT slop
 
-PYTHONPATH="${0%/*}/../py:$PYTHONPATH" $SLEEPLESS ${DJ_RSYNC:-rsync} \
+sleepless ${DJ_RSYNC:-rsync} \
     -vrtzO \
     --delete \
     --modify-window=$time_hack \

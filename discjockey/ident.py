@@ -1,16 +1,18 @@
 # Copyright (c) 2014-2016 John Leen
 
-import json
 import os
-import platform
-import subprocess
 import sys
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
+import urllib.error
+import urllib.error
+import urllib.parse
+import urllib.parse
+import urllib.request
+import urllib.request
 from xml.etree import ElementTree
 
 from discjockey import config
 from discjockey import platform as djplatform
+
 
 def get_tracks_from_gracenote():
     toc = djplatform.read_toc()
@@ -33,14 +35,14 @@ def get_tracks_from_gracenote():
     mode = ElementTree.SubElement(query, 'MODE')
     mode.text = 'SINGLE_BEST'  # or SINGLE_BEST_COVER
 
-    tocNode = ElementTree.SubElement(query, 'TOC')
-    offset = ElementTree.SubElement(tocNode, 'OFFSETS')
+    toc_node = ElementTree.SubElement(query, 'TOC')
+    offset = ElementTree.SubElement(toc_node, 'OFFSETS')
     offset.text = toc
 
-    responseObj = urllib.request.urlopen(url, ElementTree.tostring(root))
-    responseText = responseObj.read()
-    responseTree = ElementTree.fromstring(responseText)
-    response = responseTree.find('RESPONSE')
+    response_obj = urllib.request.urlopen(url, ElementTree.tostring(root))
+    response_text = response_obj.read()
+    response_tree = ElementTree.fromstring(response_text)
+    response = response_tree.find('RESPONSE')
 
     status = response.attrib['STATUS']
     if status != 'OK':
@@ -56,8 +58,8 @@ def get_tracks_from_gracenote():
     genre = urllib.parse.unquote(album.findall('GENRE')[0].text)
 
     tracks = []
-    trackTree = album.findall('TRACK')
-    for track in trackTree:
+    track_tree = album.findall('TRACK')
+    for track in track_tree:
         tracks.append(urllib.parse.unquote(track.findall('TITLE')[0].text))
 
     lines = []
@@ -77,9 +79,11 @@ def get_tracks_from_gracenote():
 
 def ident():
     album = None
-    if len(config.args) >= 1: album = config.args[0]
+    if len(config.args) >= 1:
+        album = config.args[0]
     num_discs = 1
-    if len(config.args) >= 2: num_discs = int(config.args[1])
+    if len(config.args) >= 2:
+        num_discs = int(config.args[1])
 
     if album and os.path.exists(album):
         raise Exception('Already exists: ' + album)
@@ -104,4 +108,5 @@ def ident():
                     f.write(line)
                     f.write('\n')
 
-    if num_discs > 1: djplatform.eject_disc()
+    if num_discs > 1:
+        djplatform.eject_disc()

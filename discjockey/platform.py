@@ -4,19 +4,20 @@ import platform
 import subprocess
 import time
 
+import sys
 from discjockey import config
 
 MAC_OS = platform.system() == 'Darwin'
 LINUX = platform.system() == 'Linux'
 CYGWIN = platform.system().startswith('CYGWIN_NT')
 
-if not (MAC_OS or LINUX or CYGWIN): raise 'Unknown platform'
+if not (MAC_OS or LINUX or CYGWIN):
+    raise Exception('Unknown platform')
 
 
-
-##
-## prevent_sleep
-##
+#
+# prevent_sleep
+#
 
 def prevent_sleep():
     if MAC_OS:
@@ -24,24 +25,27 @@ def prevent_sleep():
         pmset.prevent_idle_sleep('Disc Jockey Rip')
 
 
-##
-## wait_for_disc
-##
+#
+# wait_for_disc
+#
 
 def _get_cdrom_device_if_drive_ready():
     ret = subprocess.check_output(['/usr/bin/drutil', 'status']).split(b'\n')
-    if len(ret) < 4: return None
-    if b'Name' not in ret[3]: return None
-    return ret[3][ret[3].find(b'/') :].decode('ascii')
+    if len(ret) < 4:
+        return None
+    if b'Name' not in ret[3]:
+        return None
+    return ret[3][ret[3].find(b'/'):].decode('ascii')
+
 
 def _disc_ready(cdrom_device):
     if MAC_OS:
+        if not _get_cdrom_device_if_drive_ready():
+            return False
         ret = subprocess.check_output(['/sbin/mount'])
-        if cdrom_device.encode('utf-8') not in ret:
+        if cdrom_device.encode('utf-8') in ret:
             subprocess.check_output(['/usr/sbin/diskutil', 'umount',
                                      cdrom_device])
-            return False
-        else:
             return True
     elif LINUX:
         ret = subprocess.call(
@@ -54,6 +58,7 @@ def _disc_ready(cdrom_device):
                 stderr=subprocess.STDOUT)
         return b'Cannot load media' not in ret
 
+
 def wait_for_disc():
     if config.bin_wait:
         subprocess.check_output(config.bin_wait.split(' '))
@@ -63,21 +68,22 @@ def wait_for_disc():
     if MAC_OS:
         while True:
             cdrom_device = _get_cdrom_device_if_drive_ready()
-            if cdrom_device: break
+            if cdrom_device:
+                break
             time.sleep(1)
 
     while not _disc_ready(cdrom_device):
         time.sleep(1)
 
 
-##
-## eject_disc
-##
+#
+# eject_disc
+#
 
 def eject_disc():
     if config.bin_eject:
         subprocess.check_output(config.bin_eject.split(' '))
-    elif MAC_OS: 
+    elif MAC_OS:
         subprocess.check_output(['/usr/bin/drutil', 'eject'])
     elif LINUX:
         subprocess.check_output(['/usr/bin/eject', '/dev/cdrom'])
@@ -85,9 +91,9 @@ def eject_disc():
         subprocess.check_output(['/usr/bin/cdrecord', '-eject'])
 
 
-##
-## read_toc
-##
+#
+# read_toc
+#
 
 def read_toc():
     if MAC_OS:
@@ -95,6 +101,8 @@ def read_toc():
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         toc = ''
+        last_start = None
+        last_length = None
         for line in out.splitlines():
             if line[8:18] == b'trackStart':
                 last_start = int(line[27:]) + 150
@@ -117,9 +125,9 @@ def read_toc():
     return toc
 
 
-##
-## get_discid
-##
+#
+# get_discid
+#
 
 def get_discid():
     if config.bin_discid:
@@ -134,42 +142,61 @@ def get_discid():
         return subprocess.check_output(['/usr/bin/cd-discid', cdrom_device])
 
 
-def _usr_bin(bin):
-    if MAC_OS: return '/usr/local/bin/' + bin
-    else: return '/usr/bin/' + bin
+def _usr_bin(binary):
+    if MAC_OS:
+        return '/usr/local/bin/' + binary
+    else:
+        return '/usr/bin/' + binary
+
 
 def bin_flac():
-    if config.bin_flac: return config.bin_flac
-    else: return _usr_bin('flac')
+    if config.bin_flac:
+        return config.bin_flac
+    else:
+        return _usr_bin('flac')
+
 
 def bin_metaflac():
-    if config.bin_metaflac: return config.bin_metaflac
-    else: return _usr_bin('metaflac')
+    if config.bin_metaflac:
+        return config.bin_metaflac
+    else:
+        return _usr_bin('metaflac')
+
 
 def bin_cdparanoia():
-    if config.bin_cdparanoia: return config.bin_cdparanoia
-    else: return _usr_bin('cdparanoia')
+    if config.bin_cdparanoia:
+        return config.bin_cdparanoia
+    else:
+        return _usr_bin('cdparanoia')
+
 
 def translate_afp_path(specibus):
     # Maybe this isn't an afp path at all.
-    if ':' not in specibus: return specibus
+    if ':' not in specibus:
+        return specibus
 
     # It is! Make sure we can handle it.
-    if not MAC_OS: raise('afp is only supported on Mac OS')
+    if not MAC_OS:
+        raise Exception('afp is only supported on Mac OS')
 
     sylladex = specibus.split(':')
     afp_host = sylladex[0]
     afp_share = sylladex[1]
     afp_dir = ''
-    if len(sylladex) > 2: afp_dir = '/' + sylladex[2]
+    if len(sylladex) > 2:
+        afp_dir = '/' + sylladex[2]
 
     # TODO(jleen): Can we do this through some Cocoa API?
     mounts = subprocess.check_output('/sbin/mount').decode('utf-8')
     for line in mounts.split('\n'):
-        if 'auto' in line: continue
-        if afp_host not in line: continue
-        if afp_share not in line: continue
+        if 'auto' in line:
+            continue
+        if afp_host not in line:
+            continue
+        if afp_share not in line:
+            continue
         return line.split(' ')[2] + afp_dir
+
 
 catalog_path = translate_afp_path(config.catalog_path)
 music_path = translate_afp_path(config.music_path)

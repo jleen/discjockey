@@ -15,9 +15,11 @@ track_extension = '.flac'
 DISC_DELIMITER = uuid.uuid4
 SKIPPED_TRACK = uuid.uuid4
 
+
 def make_set_filename(name, num, max_track, max_set):
     return (make_track_filename(name, 0, num, max_track, max_set)
             + playlist_extension)
+
 
 def make_track_filename(name, track_num, set_num, max_track, max_set):
     slen = '%d' % len('%d' % max_set)
@@ -27,6 +29,7 @@ def make_track_filename(name, track_num, set_num, max_track, max_set):
     else:
         fmt = '%0' + slen + 'd.%0' + tlen + 'd %s'
         return fmt % (set_num, track_num, name)
+
 
 def sanitize_filename(filename):
     """Given a candidate filename, replace all bad characters with wholesome
@@ -40,7 +43,8 @@ def sanitize_filename(filename):
 
     return filename
 
-def make_playlists(filename):
+
+def make_playlists(filename, album_path):
     """Given the path to an album spec, returns a data structure containing all
     the playlists to generate, including the master playlist containing all
     tracks."""
@@ -55,12 +59,11 @@ def make_playlists(filename):
     set_num = 0
 
     master_set = {
-            'set_name': master_name,
-            'set_num': 0,
-            'tracks': []
-            }
-    tracks = []
-    sets = [ master_set ]
+        'set_name': master_name,
+        'set_num': 0,
+        'tracks': []
+    }
+    sets = [master_set]
     max_track = 0
 
     current_set = None
@@ -77,33 +80,36 @@ def make_playlists(filename):
         if line.startswith('~~~'):
             # We care about disc boundaries because we want to use the track
             # count as a way to detect if the wrong disc is inserted.
-            master_set.append(DISC_DELIMITER)
+            master_set['tracks'].append(DISC_DELIMITER)
 
         elif line.startswith('---'):
-            # We need to remember if the catalog entry tells us to skip a track,
+            # We need to remember if the catalog entry tells us to skip a
+            # track,
             # so we won't rip it.
             # TODO(jleen): Should we also end the current trackset?
-            master_set.append(SKIPPED_TRACK)
+            master_set['tracks'].append(SKIPPED_TRACK)
 
         elif line.startswith('*'):
             # This is the beginning of a new trackset.
             set_name = sanitize_filename(line[1:].strip())
             set_num += 1
             track_num = 0
-            current_set = [ [set_name, set_num] ]
             current_set = {
-                    'set_name': set_name,
-                    'set_num': set_num,
-                    'tracks': []
-                    }
+                'set_name': set_name,
+                'set_num': set_num,
+                'tracks': []
+            }
             sets.append(current_set)
 
         elif line.startswith('~'):
             # Metadata!
             [code, value] = line.split(' ', 1)
-            if code == '~g': genre = value
-            if code == '~a': album = value
-            if code == '~r': artist = value
+            if code == '~g':
+                genre = value
+            if code == '~a':
+                album = value
+            if code == '~r':
+                artist = value
 
         elif line == "":
             # Blank line.  End the current trackset, if we were working on one.
@@ -114,7 +120,7 @@ def make_playlists(filename):
             # A track entry.  Add it to the master trackset, and also the
             # current trackset if we're working on one.
             track_name = sanitize_filename(line)
-            if current_set == None:
+            if current_set is None:
                 track_num = 0
                 set_num += 1
             else:
@@ -122,17 +128,18 @@ def make_playlists(filename):
                 max_track = max(max_track, track_num)
 
             track = {
-                    'track_name': track_name,
-                    'track_num': track_num,
-                    'set_num': set_num,
-                    'genre': genre,
-                    'artist': artist,
-                    'album': album,
-                    'title': line,
-                    'set': set_name
-                    }
+                'track_name': track_name,
+                'track_num': track_num,
+                'set_num': set_num,
+                'genre': genre,
+                'artist': artist,
+                'album': album,
+                'title': line,
+                'set': set_name
+            }
             master_set['tracks'].append(track)
-            if current_set != None: current_set['tracks'].append(track)
+            if current_set is not None:
+                current_set['tracks'].append(track)
 
     max_set = set_num
 
@@ -157,23 +164,26 @@ def make_playlists(filename):
                     track['set_num'], max_track, max_set) + track_extension
 
     return sets
-    
+
+
 def is_metatrack(track_name):
     return track_name == DISC_DELIMITER or track_name == SKIPPED_TRACK
 
-def write_playlists(playlists):
-    all_tracks = []
 
-    if not config.rename: os.makedirs(os.path.join(platform.music_path,
-                                                   album_path))
+def write_playlists(playlists, album_path):
+    if not config.rename:
+        os.makedirs(os.path.join(platform.music_path,
+                                 album_path))
     for playlist in playlists:
         path = os.path.join(platform.music_path,
                             album_path, playlist['filename'])
-        if config.rename and os.path.exists(path): os.remove(path)
-        f = open(path, 'w')
-        for track in playlist['tracks']:
-            if not is_metatrack(track): f.write(track['filename'] + '\n');
-        f.close
+        if config.rename and os.path.exists(path):
+            os.remove(path)
+        with open(path, 'w') as f:
+            for track in playlist['tracks']:
+                if not is_metatrack(track):
+                    f.write(track['filename'] + '\n')
+
 
 def divide_tracks_by_disc(tracks):
     track_sets = []
@@ -182,17 +192,19 @@ def divide_tracks_by_disc(tracks):
         if track == DISC_DELIMITER:
             track_sets.append(current_tracks)
             current_tracks = []
-        else: current_tracks.append(track)
+        else:
+            current_tracks.append(track)
     track_sets.append(current_tracks)
     return track_sets
 
-def rename_files(tracks):
+
+def rename_files(tracks, album_path):
     tracks = [track for track in tracks if not is_metatrack(track)]
     path = os.path.join(platform.music_path, album_path)
     files = [f for f in os.listdir(path) if f.endswith(track_extension)]
     if len(files) != len(tracks):
         raise Exception('Album has %d tracks but directory has %d files' %
-                            (len(tracks), len(files)))
+                        (len(tracks), len(files)))
     files.sort()
 
     for (linear_num, (old_name, track)) in enumerate(zip(files, tracks), 1):
@@ -205,76 +217,76 @@ def rename_files(tracks):
         if old_name_nfc != new_name_nfc:
             if os.path.exists(os.path.join(path, new_name)):
                 raise Exception('Trying to rename %s to already-existing %s' %
-                                    (old_name, new_name))
+                                (old_name, new_name))
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
         subprocess.check_output([
-                platform.bin_metaflac(),
-                '--remove-all-tags',
-                '--set-tag=GENRE=%s' % track['genre'],
-                '--set-tag=ARTIST=%s' % track['artist'],
-                '--set-tag=ALBUM=%s' % track['album'],
-                '--set-tag=TITLE=%s' % track['title'],
-                '--set-tag=TRACKNUMBER=%d' % linear_num,
-                os.path.join(path, new_name)])
-            
-    
+            platform.bin_metaflac(),
+            '--remove-all-tags',
+            '--set-tag=GENRE=%s' % track['genre'],
+            '--set-tag=ARTIST=%s' % track['artist'],
+            '--set-tag=ALBUM=%s' % track['album'],
+            '--set-tag=TITLE=%s' % track['title'],
+            '--set-tag=TRACKNUMBER=%d' % linear_num,
+            os.path.join(path, new_name)])
+
+
 def dissect_track_path(track_path):
     comps = track_path.split(os.path.sep)
-    if len(comps) < 3: raise Exception(
-            'Album path %d should be Genre/Collection/Album or deeper'
-            % track_path)
-    return (comps[0], comps[-2], comps[-1])
+    if len(comps) < 3:
+        raise Exception(
+                'Album path %d should be Genre/Collection/Album or deeper'
+                % track_path)
+    return comps[0], comps[-2], comps[-1]
+
 
 def assert_disc_length(disc_len):
     discid = platform.get_discid()
     num_tracks = int(discid.split(b' ')[1])
     if not config.allow_wrong_length and num_tracks != disc_len:
         print(('Playlist length %d does not match disc length %d'
-                        % (disc_len, num_tracks)))
+               % (disc_len, num_tracks)))
         sys.exit(1)
+
 
 def assert_first_disc_length(tracks):
     disc_tracksets = divide_tracks_by_disc(tracks)
     first_disc_tracks = disc_tracksets[config.first_disc - 1]
     assert_disc_length(len(first_disc_tracks))
 
-def rip_and_encode(tracks):
+
+def rip_and_encode(tracks, album_path):
     disc_tracksets = divide_tracks_by_disc(tracks)
 
     num_discs = len(disc_tracksets)
     disc_num = config.first_disc
     linear_num = 1
 
-    for disc_tracks in disc_tracksets[disc_num-1:]:
+    for disc_tracks in disc_tracksets[disc_num - 1:]:
         if disc_num > config.first_disc:
-            if (platform.bin_wait()):
-                print(("--- Insert disc %d of %d ---" % (disc_num, num_discs)))
-                with open(os.devnull, 'w') as dev_null:
-                    subprocess.call(platform.bin_wait().split(' '),
-                                    stdout=dev_null)
-            else:
-                print(("--- Insert disc %d of %d and hit Enter ---" %
-                       (disc_num, num_discs)))
-                sys.stdin.readline()
+            print(("--- Insert disc %d of %d ---" % (disc_num, num_discs)))
+            platform.wait_for_disc()
         disc_num += 1
 
         assert_disc_length(len(disc_tracks))
 
         for (track_num, track) in enumerate(disc_tracks, start=1):
-            if track == SKIPPED_TRACK: continue
-            track_name = track['track_name']
+            if track == SKIPPED_TRACK:
+                continue
 
             print(('Ripping ' + track['title']))
-            if track['set']: print(('from ' + track['set']))
+            if track['set']:
+                print(('from ' + track['set']))
             print()
 
             output_file = os.path.join(
                     platform.music_path, album_path,
                     track['filename'])
+            rip_proc = None
+            encode_proc = None
             try:
                 rip_proc = subprocess.Popen(
-                        [platform.bin_cdparanoia(), '%d' % (track_num), '-'],
+                        [platform.bin_cdparanoia(), '%d' % track_num, '-'],
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
                         [platform.bin_flac(), '-s', '-', '-o', output_file,
@@ -282,8 +294,8 @@ def rip_and_encode(tracks):
                          '-T', 'ALBUM=%s' % (track['album']),
                          '-T', 'ARTIST=%s' % (track['artist']),
                          '-T', 'GENRE=%s' % (track['genre']),
-                         '-T', 'TRACKNUMBER=%d' % (linear_num)],
-                            stdin=rip_proc.stdout, stdout=subprocess.PIPE)
+                         '-T', 'TRACKNUMBER=%d' % linear_num],
+                        stdin=rip_proc.stdout, stdout=subprocess.PIPE)
                 rip_proc.stdout.close()
                 encode_proc.communicate()
                 if rip_proc.wait() != 0:
@@ -291,26 +303,33 @@ def rip_and_encode(tracks):
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
             except:
-                encode_proc.terminate()
-                rip_proc.terminate()
+                if encode_proc is not None:
+                    encode_proc.terminate()
+                if rip_proc is not None:
+                    rip_proc.terminate()
                 os.remove(output_file)
                 raise
             linear_num += 1
 
         platform.eject_disc()
 
+
 def rip():
     # TODO(jleen): Is it worth dispatching to wrip automatically?
-    if platform.CYGWIN: raise('Please use wrip instead')
+    if platform.CYGWIN:
+        raise Exception('Please use wrip instead')
     platform.prevent_sleep()
 
-    global album_path
     album_path = config.args[0]
-    playlists = make_playlists(os.path.join(platform.catalog_path,
-                                            album_path))
+    playlists = make_playlists(os.path.join(platform.catalog_path, album_path),
+                               album_path)
 
-    if not config.rename: assert_first_disc_length(playlists[0]['tracks'])
-    if config.create_playlists: write_playlists(playlists)
+    if not config.rename:
+        assert_first_disc_length(playlists[0]['tracks'])
+    if config.create_playlists:
+        write_playlists(playlists, album_path)
 
-    if config.rename: rename_files(playlists[0]['tracks'])
-    elif config.rip: rip_and_encode(playlists[0]['tracks'])
+    if config.rename:
+        rename_files(playlists[0]['tracks'], album_path)
+    elif config.rip:
+        rip_and_encode(playlists[0]['tracks'], album_path)

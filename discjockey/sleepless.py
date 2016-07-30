@@ -4,8 +4,10 @@ import platform
 import subprocess
 import sys
 
-if platform.system() == 'Darwin':
-    import pmset
-    pmset.prevent_idle_sleep('Disc Jockey Rip')
 
-subprocess.call(sys.argv[1:])
+def sleepless():
+    if platform.system() == 'Darwin':
+        from discjockey import pmset
+        pmset.prevent_idle_sleep('Disc Jockey Rip')
+
+    subprocess.call(sys.argv[1:])
