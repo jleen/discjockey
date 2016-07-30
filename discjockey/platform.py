@@ -46,7 +46,7 @@ def _disc_ready(cdrom_device):
         if cdrom_device.encode('utf-8') in ret:
             subprocess.check_output(['/usr/sbin/diskutil', 'umount',
                                      cdrom_device])
-            return True
+        return True
     elif LINUX:
         ret = subprocess.call(
                 ['/usr/bin/cd-discid', config.dev_cdrom],
