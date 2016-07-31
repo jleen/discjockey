@@ -1,3 +1,7 @@
 .idea
 *.pyc
+bin
 discjockey.egg-info
+lib
+lib64
+pyvenv.cfg
