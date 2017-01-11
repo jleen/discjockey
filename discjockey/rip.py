@@ -12,8 +12,8 @@ from discjockey import platform
 playlist_extension = '.m3u'
 track_extension = '.flac'
 
-DISC_DELIMITER = uuid.uuid4
-SKIPPED_TRACK = uuid.uuid4
+DISC_DELIMITER = uuid.uuid4()
+SKIPPED_TRACK = uuid.uuid4()
 
 
 def make_set_filename(name, num, max_track, max_set):

@@ -46,7 +46,7 @@ catalog_path = _args.catalog
 
 rip = _args.rip
 rename = _args.rename
-create_playlists = _args.create_playlists
+create_playlists = _args.create_playlists and _args.first_disc == 1
 allow_wrong_length = _args.allow_wrong_length
 first_disc = _args.first_disc
 nometa = _args.nometa

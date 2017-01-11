@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 LOSSLESS_FORMATS = ['.flac', '.wav']
-BORING_FORMATS = ['.mp3', '.m4a', '.wma']
+BORING_FORMATS = ['.mp3', '.m4a', '.wma', '.mid']
 
 
 def transcode():
@@ -164,7 +164,7 @@ def transcode():
         return m3u_filename
 
     flac_header_re = re.compile(b'.+: FLAC audio bitstream data, ' +
-                                b'(16|24) bit, (mono|stereo), (44\.1|48) '
+                                b'(16|24) bit, (mono|stereo), (44\.1|48|96) '
                                 b'kHz, ' +
                                 b'\d+ samples')
     ogg_header_re = re.compile(b'.+: Ogg data, Vorbis audio, (mono|stereo), ' +
@@ -188,6 +188,8 @@ def transcode():
             frequency = '44100'
         elif m.group(3) == b'48':
             frequency = '48000'
+        elif m.group(3) == b'96':
+            frequency = '96000'
         else:
             assert False, "Can't parse flac frequency magic"
 
@@ -317,6 +319,8 @@ def transcode():
                         frequency = '44.1'
                     elif header_data['frequency'] == '48000':
                         frequency = '48'
+                    elif header_data['frequency'] == '96000':
+                        frequency = '96'
                     else:
                         assert False
 
