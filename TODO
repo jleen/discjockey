@@ -1,0 +1,4 @@
+Move detection
+Store TOC in catalog file for error detection (and autorecognition!)
+Use libparanoia and suppress status message?
+Should fail before writing m3u if wrong length. or just allow -f m3u
