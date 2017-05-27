@@ -50,6 +50,7 @@ def get_tracks_from_gracenote():
         print()
         print("Queried for %s" % toc)
         print("Got response %s" % status)
+        print(response_tree.find('MESSAGE').text)
         sys.exit(2)
 
     album = response.find('ALBUM')
