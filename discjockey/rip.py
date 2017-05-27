@@ -314,6 +314,11 @@ def rip_and_encode(tracks, album_path):
         platform.eject_disc()
 
 
+def rename():
+    # HACK HACK HACK
+    config.rename = True
+    rip()
+
 def rip():
     # TODO(jleen): Is it worth dispatching to wrip automatically?
     if platform.CYGWIN:
