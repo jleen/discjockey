@@ -178,18 +178,18 @@ def transcode():
         m = flac_header_re.match(magic)
 
         if m.group(2) == b'mono':
-            channels = '1'
+            channels = b'1'
         elif m.group(2) == b'stereo':
-            channels = '2'
+            channels = b'2'
         else:
             assert False, "Can't parse flac channel magic"
 
         if m.group(3) == b'44.1':
-            frequency = '44100'
+            frequency = b'44100'
         elif m.group(3) == b'48':
-            frequency = '48000'
+            frequency = b'48000'
         elif m.group(3) == b'96':
-            frequency = '96000'
+            frequency = b'96000'
         else:
             assert False, "Can't parse flac frequency magic"
 
@@ -216,15 +216,15 @@ def transcode():
         m = ogg_header_re.match(magic)
 
         if m.group(1) == b'mono':
-            channels = '1'
+            channels = b'1'
         elif m.group(1) == b'stereo':
-            channels = '2'
+            channels = b'2'
         else:
             assert False, "Can't parse ogg channel magic"
 
         header_fields = {
             'channels': channels, 'frequency': m.group(2),
-            'bitwidth': '16'
+            'bitwidth': b'16'
         }
 
         try:
@@ -307,22 +307,24 @@ def transcode():
                     elif header_data['channels'] == '2':
                         channels = 's'
                     else:
-                        assert False
+                        assert False, ("Can't parse channels %s" %
+                                       header_data['channels'])
 
-                    if header_data['frequency'] == '11025':
+                    if header_data['frequency'] == b'11025':
                         frequency = '11.025'
-                    elif header_data['frequency'] == '22050':
+                    elif header_data['frequency'] == b'22050':
                         frequency = '22.05'
-                    elif header_data['frequency'] == '37800':
+                    elif header_data['frequency'] == b'37800':
                         frequency = '37.8'
-                    elif header_data['frequency'] == '44100':
+                    elif header_data['frequency'] == b'44100':
                         frequency = '44.1'
-                    elif header_data['frequency'] == '48000':
+                    elif header_data['frequency'] == b'48000':
                         frequency = '48'
-                    elif header_data['frequency'] == '96000':
+                    elif header_data['frequency'] == b'96000':
                         frequency = '96'
                     else:
-                        assert False
+                        assert False, ("Can't parse frequency %s" %
+                                       frequency_spec)
 
                     meta_flags = header_to_flags(header_data, mp3_flags)
                     encode_proc = subprocess.Popen(
