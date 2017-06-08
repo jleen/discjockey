@@ -302,9 +302,9 @@ def transcode():
                                header_data['frequency']))
 
                 if args.mp3:
-                    if header_data['channels'] == '1':
+                    if header_data['channels'] == b'1':
                         channels = 'm'
-                    elif header_data['channels'] == '2':
+                    elif header_data['channels'] == b'2':
                         channels = 's'
                     else:
                         assert False, ("Can't parse channels %s" %
