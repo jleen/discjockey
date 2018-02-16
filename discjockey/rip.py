@@ -302,12 +302,13 @@ def rip_and_encode(tracks, album_path):
                     raise Exception('Abnormal cdparanoia termination')
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
-            except:
+            except (Exception, KeyboardInterrupt):
                 if encode_proc is not None:
                     encode_proc.terminate()
                 if rip_proc is not None:
                     rip_proc.terminate()
-                os.remove(output_file)
+                if os.path.exists(output_file):
+                    os.remove(output_file)
                 raise
             linear_num += 1
 
@@ -318,6 +319,7 @@ def rename():
     # HACK HACK HACK
     config.rename = True
     rip()
+
 
 def rip():
     # TODO(jleen): Is it worth dispatching to wrip automatically?

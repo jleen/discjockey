@@ -109,8 +109,8 @@ def transcode():
         dst = cache_path(rel_dir, filename)
 
         nuke_non_file(dst)
-        if (os.path.isfile(dst) and
-                os.stat(dst).st_mtime >= os.stat(src).st_mtime):
+        if (os.path.isfile(dst)
+                and os.stat(dst).st_mtime >= os.stat(src).st_mtime):
             logging.info('Not re-munging %s' % dst)
             return
 
@@ -147,8 +147,8 @@ def transcode():
         m3u_path = cache_path(rel_dir, m3u_filename)
 
         nuke_non_file(m3u_path)
-        if (not args.force_playlists and os.path.isfile(m3u_path) and
-                os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
+        if (not args.force_playlists and os.path.isfile(m3u_path)
+                and os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
             logging.info('Not recreating %s' % m3u_path)
             return m3u_filename
 
@@ -259,8 +259,8 @@ def transcode():
         out_path = cache_path(rel_dir, transcoded_filename(filename))
 
         nuke_non_file(out_path)
-        if (os.path.isfile(out_path) and
-                os.stat(out_path).st_mtime >= os.stat(in_path).st_mtime):
+        if (os.path.isfile(out_path)
+                and os.stat(out_path).st_mtime >= os.stat(in_path).st_mtime):
             logging.info('Not re-transcoding %s' % out_path)
             return
 
@@ -361,11 +361,12 @@ def transcode():
                 raise Exception('Abnormal %s termination' % encoder)
             if decode_proc.returncode != 0:
                 raise Exception('Abnormal %s termination' % in_format)
-        except:
+        except (Exception, KeyboardInterrupt):
             # Remove the (presumably incomplete) output file if we crash during
             # transcoding.
-            logging.warning('Removing %s' % out_path)
-            os.unlink(out_path)
+            if os.path.isfile(out_path):
+                logging.warning('Removing %s' % out_path)
+                os.unlink(out_path)
             raise
 
     def transcode_flac(music_path, rel_dir, filename):
@@ -384,8 +385,8 @@ def transcode():
         out_path = cache_path(rel_dir, transcoded_filename(filename))
 
         nuke_non_file(out_path)
-        if (os.path.isfile(out_path) and
-                os.stat(out_path).st_mtime >= os.stat(wav_path).st_mtime):
+        if (os.path.isfile(out_path)
+                and os.stat(out_path).st_mtime >= os.stat(wav_path).st_mtime):
             logging.info('Not re-transcoding %s' % out_path)
             return
 
@@ -407,11 +408,12 @@ def transcode():
                 encode_proc.communicate()
             if encode_proc.returncode != 0:
                 raise Exception('Abnormal oggenc termination')
-        except:
+        except (Exception, KeyboardInterrupt):
             # Remove the (presumably incomplete) Vorbis if we crash during
             # transcoding.
-            logging.debug('Removing %s' % out_path)
-            os.unlink(out_path)
+            if os.path.exists(out_path):
+                logging.debug('Removing %s' % out_path)
+                os.unlink(out_path)
             raise
 
     def create_link(music_path, rel_dir, filename):
@@ -550,9 +552,9 @@ def transcode():
                             if ext == '.wav':
                                 transcode_wav(music_path, rel_dir, filename)
                                 file_set.add(transcoded_filename(filename))
-                    if ((ext in link_extns and not filename.startswith('.')) or
-                            (args.keep_sigil and
-                                filename in args.keep_sigil)):
+                    if ((ext in link_extns and not filename.startswith('.'))
+                            or (args.keep_sigil
+                                and filename in args.keep_sigil)):
                         create_link(music_path, rel_dir, filename)
                         file_set.add(filename)
                     if ext in music_formats:
@@ -562,10 +564,12 @@ def transcode():
 
             # Remove files and directories from the cache that aren't in the
             # master.
-            dir_set = frozenset(d for d in dirs if in_sigil or
-                                contains_referent(rel_dir, d, m3u_referents) or
-                                any(contains_sigil(os.path.join(m, rel_dir, d))
-                                    for m in args.music))
+            dir_set = frozenset(d for d in dirs if in_sigil
+                                or contains_referent(
+                                        rel_dir, d, m3u_referents)
+                                or any(contains_sigil(
+                                        os.path.join(m, rel_dir, d))
+                                       for m in args.music))
             if os.path.isdir(cache_path(rel_dir)):
                 for filename in os.listdir(cache_path(rel_dir)):
                     path = cache_path(rel_dir, filename)
@@ -575,9 +579,9 @@ def transcode():
                                 remove_spurious_file(path)
                             else:
                                 remove_spurious_dir(path)
-                    elif (filename not in file_set and
-                          os.path.join(rel_dir,
-                                       filename) not in m3u_referents):
+                    elif (filename not in file_set
+                          and os.path.join(rel_dir,
+                                           filename) not in m3u_referents):
                         remove_spurious_file(path)
 
     update_cache()
