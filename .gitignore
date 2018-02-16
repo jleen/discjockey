@@ -4,4 +4,6 @@ bin
 discjockey.egg-info
 lib
 lib64
+pip-selfcheck.json
 pyvenv.cfg
+share

@@ -109,8 +109,8 @@ def transcode():
         dst = cache_path(rel_dir, filename)
 
         nuke_non_file(dst)
-        if (os.path.isfile(dst)
-                and os.stat(dst).st_mtime >= os.stat(src).st_mtime):
+        if (os.path.isfile(dst) and
+                os.stat(dst).st_mtime >= os.stat(src).st_mtime):
             logging.info('Not re-munging %s' % dst)
             return
 
@@ -147,8 +147,8 @@ def transcode():
         m3u_path = cache_path(rel_dir, m3u_filename)
 
         nuke_non_file(m3u_path)
-        if (not args.force_playlists and os.path.isfile(m3u_path)
-                and os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
+        if (not args.force_playlists and os.path.isfile(m3u_path) and
+                os.stat(m3u_path).st_mtime >= os.stat(src_dir).st_mtime):
             logging.info('Not recreating %s' % m3u_path)
             return m3u_filename
 
@@ -163,39 +163,30 @@ def transcode():
                 out_f.write('%s\n' % music_file)
         return m3u_filename
 
-    flac_header_re = re.compile(b'.+: FLAC audio bitstream data, ' +
-                                b'(16|24) bit, (mono|stereo), (44\.1|48|96) '
-                                b'kHz, ' +
-                                b'\d+ samples')
     ogg_header_re = re.compile(b'.+: Ogg data, Vorbis audio, (mono|stereo), ' +
                                b'(11025|22050|37800|44100|48000)')
     flac_meta_re = re.compile(b'(GENRE|ARTIST|ALBUM|TITLE|TRACKNUMBER)=(.*)')
     ogg_meta_re = re.compile(b'(genre|artist|album|title|tracknumber)=(.*)')
+    sane_channels = [b'1', b'2']
+    sane_frequences = [b'44100', b'48000', b'88200', b'96000', b'192000']
+    sane_bitwidths = [b'16', b'24']
 
     def flac_header(path):
-        magic = subprocess.check_output(
-                [args.file_bin, path]).rstrip()
-        m = flac_header_re.match(magic)
+        [channels, frequency, bitwidth] = subprocess.check_output(
+                [args.metaflac_bin, '--show-channels', '--show-sample-rate',
+                 '--show-bps', path]).rstrip().split(b'\n')
 
-        if m.group(2) == b'mono':
-            channels = b'1'
-        elif m.group(2) == b'stereo':
-            channels = b'2'
-        else:
+        if channels not in sane_channels:
             assert False, "Can't parse flac channel magic"
 
-        if m.group(3) == b'44.1':
-            frequency = b'44100'
-        elif m.group(3) == b'48':
-            frequency = b'48000'
-        elif m.group(3) == b'96':
-            frequency = b'96000'
-        else:
+        if frequency not in sane_frequences:
             assert False, "Can't parse flac frequency magic"
 
+        if bitwidth not in sane_bitwidths:
+            assert False, "Can't parse flac bitwidth magic"
+
         header_fields = {
-            'channels': channels, 'frequency': frequency,
-            'bitwidth': m.group(1)
+            'channels': channels, 'frequency': frequency, 'bitwidth': bitwidth
         }
 
         meta = subprocess.check_output([args.metaflac_bin,
@@ -268,8 +259,8 @@ def transcode():
         out_path = cache_path(rel_dir, transcoded_filename(filename))
 
         nuke_non_file(out_path)
-        if (os.path.isfile(out_path)
-                and os.stat(out_path).st_mtime >= os.stat(in_path).st_mtime):
+        if (os.path.isfile(out_path) and
+                os.stat(out_path).st_mtime >= os.stat(in_path).st_mtime):
             logging.info('Not re-transcoding %s' % out_path)
             return
 
@@ -310,6 +301,8 @@ def transcode():
                         assert False, ("Can't parse channels %s" %
                                        header_data['channels'])
 
+                    # TODO(jleen): Make sane_frequences into a map. Or just
+                    # do string twiddling. (No floating point, please.)
                     if header_data['frequency'] == b'11025':
                         frequency = '11.025'
                     elif header_data['frequency'] == b'22050':
@@ -320,7 +313,11 @@ def transcode():
                         frequency = '44.1'
                     elif header_data['frequency'] == b'48000':
                         frequency = '48'
+                    elif header_data['frequency'] == b'88200':
+                        frequency = '88.2'
                     elif header_data['frequency'] == b'96000':
+                        frequency = '96'
+                    elif header_data['frequency'] == b'192000':
                         frequency = '96'
                     else:
                         assert False, ("Can't parse frequency %s" %
@@ -387,8 +384,8 @@ def transcode():
         out_path = cache_path(rel_dir, transcoded_filename(filename))
 
         nuke_non_file(out_path)
-        if (os.path.isfile(out_path)
-                and os.stat(out_path).st_mtime >= os.stat(wav_path).st_mtime):
+        if (os.path.isfile(out_path) and
+                os.stat(out_path).st_mtime >= os.stat(wav_path).st_mtime):
             logging.info('Not re-transcoding %s' % out_path)
             return
 
@@ -553,9 +550,9 @@ def transcode():
                             if ext == '.wav':
                                 transcode_wav(music_path, rel_dir, filename)
                                 file_set.add(transcoded_filename(filename))
-                    if ((ext in link_extns and not filename.startswith('.'))
-                            or (args.keep_sigil
-                                and filename in args.keep_sigil)):
+                    if ((ext in link_extns and not filename.startswith('.')) or
+                            (args.keep_sigil and
+                                filename in args.keep_sigil)):
                         create_link(music_path, rel_dir, filename)
                         file_set.add(filename)
                     if ext in music_formats:
@@ -578,9 +575,9 @@ def transcode():
                                 remove_spurious_file(path)
                             else:
                                 remove_spurious_dir(path)
-                    elif (filename not in file_set
-                          and os.path.join(rel_dir,
-                                           filename) not in m3u_referents):
+                    elif (filename not in file_set and
+                          os.path.join(rel_dir,
+                                       filename) not in m3u_referents):
                         remove_spurious_file(path)
 
     update_cache()
