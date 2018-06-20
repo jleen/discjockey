@@ -7,11 +7,14 @@ import time
 import sys
 from discjockey import config
 
+REDBOOK_FRAMES_PER_SEC = 75
+
 MAC_OS = platform.system() == 'Darwin'
 LINUX = platform.system() == 'Linux'
 CYGWIN = platform.system().startswith('CYGWIN_NT')
+WINDOWS = platform.system() == 'Windows'
 
-if not (MAC_OS or LINUX or CYGWIN):
+if not (MAC_OS or LINUX or CYGWIN or WINDOWS):
     raise Exception('Unknown platform')
 
 
@@ -57,6 +60,9 @@ def _disc_ready(cdrom_device):
                 ['/usr/bin/cdrecord', '-toc'],
                 stderr=subprocess.STDOUT)
         return b'Cannot load media' not in ret
+    elif WINDOWS:
+        ret = get_discid()
+        return b'There is a problem with your media device' not in ret
 
 
 def wait_for_disc():
@@ -114,6 +120,12 @@ def read_toc():
                 sys.exit(1)
         # drutil doesn't report the leadout, but Gracenote needs it for ID.
         toc += str(last_start + last_length) + ' '
+    elif WINDOWS:
+        discid = get_discid().decode('UTF-8').split(' ')
+        # This is a sad hack.
+        leadout = str(REDBOOK_FRAMES_PER_SEC * int(discid[-1]))
+        toc = ' '.join(discid[2:-1] + [leadout])
+
     else:
         p = subprocess.Popen(['/usr/bin/cdrecord', '-toc'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -130,6 +142,11 @@ def read_toc():
 #
 
 def get_discid():
+    if WINDOWS:
+        p = subprocess.Popen(config.bin_discid.split(' '),
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        return out + err
     if config.bin_discid:
         return subprocess.check_output(config.bin_discid.split(' '))
 
@@ -137,6 +154,7 @@ def get_discid():
         cdrom_device = _get_cdrom_device_if_drive_ready()
         return subprocess.check_output(['/usr/local/bin/cd-discid',
                                         cdrom_device])
+
     else:
         cdrom_device = config.dev_cdrom
         return subprocess.check_output(['/usr/bin/cd-discid', cdrom_device])

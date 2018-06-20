@@ -64,6 +64,8 @@ gracenote_user = _config['Gracenote']['user']
 
 if 'Binaries' in _config:
     editor = _config['Binaries']['editor']
+    if not bin_discid:
+        bin_discid = _config['Binaries']['discid']
 else:
     editor = 'vi'
 
