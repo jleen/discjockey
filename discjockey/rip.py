@@ -179,7 +179,7 @@ def write_playlists(playlists, album_path):
                             album_path, playlist['filename'])
         if config.rename and os.path.exists(path):
             os.remove(path)
-        with open(path, 'w') as f:
+        with open(path, 'w', encoding='UTF-8') as f:
             for track in playlist['tracks']:
                 if not is_metatrack(track):
                     f.write(track['filename'] + '\n')
