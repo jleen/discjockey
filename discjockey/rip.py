@@ -49,7 +49,7 @@ def make_playlists(filename, album_path):
     the playlists to generate, including the master playlist containing all
     tracks."""
 
-    f = open(filename, 'r')
+    f = open(filename, 'r', encoding='UTF-8')
     track_list = f.readlines()
     f.close()
 
