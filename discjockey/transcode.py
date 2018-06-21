@@ -475,7 +475,11 @@ def transcode():
         referents = []
 
         with open(m3u, 'r') as f:
-            lines = [x.rstrip() for x in f.readlines()]
+            try:
+                lines = [x.rstrip() for x in f.readlines()]
+            except:
+                print('Error reading ' + m3u, file=sys.stderr)
+                raise
 
         # TODO(jleen): Unify this with the eerily similar loop in update_cache.
         for line in lines:
