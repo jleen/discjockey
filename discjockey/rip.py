@@ -270,6 +270,10 @@ def rip_and_encode(tracks, album_path):
 
         assert_disc_length(len(disc_tracks))
 
+        if config.rip_bin:
+            subprocess.check_output(
+                    [config.rip_bin] + config.rip_args.split(' '))
+
         for (track_num, track) in enumerate(disc_tracks, start=1):
             if track == SKIPPED_TRACK:
                 continue
@@ -285,8 +289,14 @@ def rip_and_encode(tracks, album_path):
             rip_proc = None
             encode_proc = None
             try:
-                rip_proc = subprocess.Popen(
-                        [platform.bin_cdparanoia(), '%d' % track_num, '-'],
+                if config.rip_bin:
+                    scratch_wav = os.path.join(
+                            config.scratch_dir, '%02d.wav' % track_num)
+                    rip_cmd = ['cat', scratch_wav]
+                else:
+                    rip_cmd = [platform.bin_cdparanoia(),
+                               '%d' % track_num, '-']
+                rip_proc = subprocess.Popen(rip_cmd,
                         stdout=subprocess.PIPE)
                 encode_proc = subprocess.Popen(
                         [platform.bin_flac(), '-s', '-', '-o', output_file,
@@ -302,6 +312,9 @@ def rip_and_encode(tracks, album_path):
                     raise Exception('Abnormal cdparanoia termination')
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
+
+                if config.rip_bin:
+                    os.remove(scratch_wav)
             except (Exception, KeyboardInterrupt):
                 if encode_proc is not None:
                     encode_proc.terminate()

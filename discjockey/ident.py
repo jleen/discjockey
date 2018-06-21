@@ -81,7 +81,7 @@ def get_tracks_from_gracenote():
 def ident():
     album = None
     if len(config.args) >= 1:
-        album = config.args[0]
+        album = os.path.join(config.catalog_path, config.args[0])
     num_discs = 1
     if len(config.args) >= 2:
         num_discs = int(config.args[1])

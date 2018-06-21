@@ -1,6 +1,7 @@
 # Copyright (c) 2016 John Leen
 
 import platform
+import shlex
 import subprocess
 import time
 
@@ -214,6 +215,12 @@ def translate_afp_path(specibus):
         if afp_share not in line:
             continue
         return line.split(' ')[2] + afp_dir
+
+def shell_escape(arg):
+    escaped = shlex.quote(arg)
+    if WINDOWS:
+        escaped = escaped.replace("'", '"')
+    return escaped
 
 
 catalog_path = translate_afp_path(config.catalog_path)

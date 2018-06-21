@@ -62,10 +62,23 @@ _config.read(os.path.expanduser('~/.djrc'))
 gracenote_client = _config['Gracenote']['client']
 gracenote_user = _config['Gracenote']['user']
 
+rip_bin = None
+rip_args = ''
+
 if 'Binaries' in _config:
-    editor = _config['Binaries']['editor']
+    binaries = _config['Binaries']
+    editor = binaries['editor']
     if not bin_discid:
-        bin_discid = _config['Binaries']['discid']
+        bin_discid = binaries['discid']
+    if not bin_discid:
+        bin_discid = binaries['discid']
+    if not bin_flac:
+        bin_flac = binaries['flac']
+    if 'rip' in binaries:
+        rip_bin = binaries['rip']
+    if 'rip_args' in binaries:
+        rip_args = binaries['rip_args']
+
 else:
     editor = 'vi'
 
@@ -73,3 +86,7 @@ if not catalog_path:
     catalog_path = _config['Paths']['catalog']
 if not music_path:
     music_path = _config['Paths']['music']
+
+scratch_dir = None
+if 'Paths' in _config and 'scratch' in _config['Paths']:
+    scratch_dir = _config['Paths']['scratch']

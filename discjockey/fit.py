@@ -1,13 +1,12 @@
 # Copyright (c) 2016 John Leen
 
 import os
-import shlex
 
 from discjockey import config, ident, platform, rip
 
 
 def fit():
-    album = config.args[0]
+    album = os.path.join(config.catalog_path, config.args[0])
     num_discs = 1
     if len(config.args) > 1:
         num_discs = int(config.args[1])
@@ -19,7 +18,7 @@ def fit():
         ident.ident()
 
         if config.editor:
-            os.system(config.editor + ' ' + shlex.quote(album))
+            os.system(config.editor + ' ' + platform.shell_escape(album))
         else:
             raise Exception('Default editor not implemented')
 

@@ -6,4 +6,7 @@ lib
 lib64
 pip-selfcheck.json
 pyvenv.cfg
+scripts/*
+!scripts/vtunes
+!scripts/wrip
 share
