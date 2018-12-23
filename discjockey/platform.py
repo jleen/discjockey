@@ -15,6 +15,7 @@ REDBOOK_FRAMES_PER_SEC = 75
 MAC_OS = platform.system() == 'Darwin'
 LINUX = platform.system() == 'Linux'
 CYGWIN = platform.system().startswith('CYGWIN_NT')
+WINDOWS = platform.system() == 'Windows'
 WSL = 'Microsoft' in platform.release()
 
 if not (MAC_OS or LINUX or CYGWIN or WINDOWS):
@@ -98,6 +99,9 @@ def eject_disc():
         subprocess.check_output(['/usr/bin/eject', '/dev/cdrom'])
     elif CYGWIN:
         subprocess.check_output(['/usr/bin/cdrecord', '-eject'])
+    elif WINDOWS:
+        subprocess.check_output(['powershell', '-executionpolicy', 'bypass',
+                                 '-File', config.ps1_eject])
 
 
 #

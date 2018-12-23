@@ -292,12 +292,13 @@ def rip_and_encode(tracks, album_path):
                 if config.rip_bin:
                     scratch_wav = os.path.join(
                             config.scratch_dir, '%02d.wav' % track_num)
-                    rip_cmd = ['cat', scratch_wav]
+                    rip_fd = open(scratch_wav, 'rb')
                 else:
                     rip_cmd = [platform.bin_cdparanoia(),
                                '%d' % track_num, '-']
-                rip_proc = subprocess.Popen(rip_cmd,
-                        stdout=subprocess.PIPE)
+                    rip_proc = subprocess.Popen(rip_cmd,
+                            stdout=subprocess.PIPE)
+                    rip_fd = rip_proc.stdout
                 encode_proc = subprocess.Popen(
                         [platform.bin_flac(), '-s', '-', '-o', output_file,
                          '-T', 'TITLE=%s' % (track['title']),
@@ -305,15 +306,17 @@ def rip_and_encode(tracks, album_path):
                          '-T', 'ARTIST=%s' % (track['artist']),
                          '-T', 'GENRE=%s' % (track['genre']),
                          '-T', 'TRACKNUMBER=%d' % linear_num],
-                        stdin=rip_proc.stdout, stdout=subprocess.PIPE)
-                rip_proc.stdout.close()
+                        stdin=rip_fd, stdout=subprocess.PIPE)
+                if rip_proc:
+                    rip_proc.stdout.close()
                 encode_proc.communicate()
-                if rip_proc.wait() != 0:
+                if rip_proc and rip_proc.wait() != 0:
                     raise Exception('Abnormal cdparanoia termination')
                 if encode_proc.returncode != 0:
                     raise Exception('Abnormal flac termination')
 
                 if config.rip_bin:
+                    rip_fd.close()
                     os.remove(scratch_wav)
             except (Exception, KeyboardInterrupt):
                 if encode_proc is not None:

@@ -64,6 +64,7 @@ gracenote_user = _config['Gracenote']['user']
 
 rip_bin = None
 rip_args = ''
+ps1_eject = None
 
 if 'Binaries' in _config:
     binaries = _config['Binaries']
@@ -78,6 +79,8 @@ if 'Binaries' in _config:
         rip_bin = binaries['rip']
     if 'rip_args' in binaries:
         rip_args = binaries['rip_args']
+    if 'ps1_eject' in binaries:
+        ps1_eject = binaries['ps1_eject']
 
 else:
     editor = 'vi'
