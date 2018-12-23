@@ -10,10 +10,12 @@ from discjockey import config
 
 REDBOOK_FRAMES_PER_SEC = 75
 
+# LINUX and WSL aren't mutually exclusive.
+# They're similar enough that this is worth it.
 MAC_OS = platform.system() == 'Darwin'
 LINUX = platform.system() == 'Linux'
 CYGWIN = platform.system().startswith('CYGWIN_NT')
-WINDOWS = platform.system() == 'Windows'
+WSL = 'Microsoft' in platform.release()
 
 if not (MAC_OS or LINUX or CYGWIN or WINDOWS):
     raise Exception('Unknown platform')
@@ -195,8 +197,8 @@ def translate_afp_path(specibus):
         return specibus
 
     # It is! Make sure we can handle it.
-    if not MAC_OS:
-        raise Exception('afp is only supported on Mac OS')
+    if not (MAC_OS or WSL):
+        raise Exception('Network paths are only supported on Mac OS and WSL')
 
     sylladex = specibus.split(':')
     afp_host = sylladex[0]
@@ -205,16 +207,20 @@ def translate_afp_path(specibus):
     if len(sylladex) > 2:
         afp_dir = '/' + sylladex[2]
 
-    # TODO(jleen): Can we do this through some Cocoa API?
-    mounts = subprocess.check_output('/sbin/mount').decode('utf-8')
-    for line in mounts.split('\n'):
-        if 'auto' in line:
-            continue
-        if afp_host not in line:
-            continue
-        if afp_share not in line:
-            continue
-        return line.split(' ')[2] + afp_dir
+    if MAC_OS:
+        # TODO(jleen): Can we do this through some Cocoa API?
+        mounts = subprocess.check_output('/sbin/mount').decode('utf-8')
+        for line in mounts.split('\n'):
+            if 'auto' in line:
+                continue
+            if afp_host not in line:
+                continue
+            if afp_share not in line:
+                continue
+            return line.split(' ')[2] + afp_dir
+    else:
+        print( '/mnt/' + afp_share.lower() + afp_dir)
+        return '/mnt/' + afp_share.lower() + afp_dir
 
 def shell_escape(arg):
     escaped = shlex.quote(arg)
