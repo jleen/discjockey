@@ -15,7 +15,7 @@ def fit():
     platform.wait_for_disc()
 
     if not os.path.exists(album):
-        ident.ident()
+        ident.ident(exit_on_fail = False)
 
         if config.editor:
             os.system(config.editor + ' ' + platform.shell_escape(album))

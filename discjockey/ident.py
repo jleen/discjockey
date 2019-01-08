@@ -14,7 +14,7 @@ from discjockey import config
 from discjockey import platform as djplatform
 
 
-def get_tracks_from_gracenote():
+def get_tracks_from_gracenote(exit_on_fail):
     toc = djplatform.read_toc()
 
     cid = config.gracenote_client
@@ -46,12 +46,15 @@ def get_tracks_from_gracenote():
 
     status = response.attrib['STATUS']
     if status != 'OK':
-        print("Gracenote couldn't find that disc.")
-        print()
-        print("Queried for %s" % toc)
-        print("Got response %s" % status)
-        print(response_tree.find('MESSAGE').text)
-        sys.exit(2)
+        if exit_on_fail:
+            print("Gracenote couldn't find that disc.")
+            print()
+            print("Queried for %s" % toc)
+            print("Got response %s" % status)
+            print(response_tree.find('MESSAGE').text)
+            sys.exit(2)
+        else:
+            return []
 
     album = response.find('ALBUM')
     artist = urllib.parse.unquote(album.findall('ARTIST')[0].text)
@@ -78,7 +81,7 @@ def get_tracks_from_gracenote():
     return lines
 
 
-def ident():
+def ident(exit_on_fail = True):
     album = None
     if len(config.args) >= 1:
         album = os.path.join(config.catalog_path, config.args[0])
@@ -99,7 +102,7 @@ def ident():
             print('--- Insert disc %d of %d ---' % (disc + 1, num_discs))
             djplatform.wait_for_disc()
 
-        lines = get_tracks_from_gracenote()
+        lines = get_tracks_from_gracenote(exit_on_fail)
 
         if album:
             if not os.path.exists(os.path.dirname(album)):
