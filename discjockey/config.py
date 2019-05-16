@@ -56,8 +56,12 @@ def _parse_afp(specibus):
     return specibus
 
 
+djrc = os.environ.get('DJRC', os.path.expanduser('~/.djrc'))
+print(djrc)
+system.exit(0)
+
 _config = configparser.ConfigParser()
-_config.read(os.path.expanduser('~/.djrc'))
+_config.read(djrc)
 
 gracenote_client = _config['Gracenote']['client']
 gracenote_user = _config['Gracenote']['user']
