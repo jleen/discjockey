@@ -75,6 +75,8 @@ if 'Binaries' in _config:
         bin_discid = binaries['discid']
     if not bin_flac:
         bin_flac = binaries['flac']
+    if not bin_metaflac:
+        bin_metaflac = binaries['metaflac']
     if 'rip' in binaries:
         rip_bin = binaries['rip']
     if 'rip_args' in binaries:
