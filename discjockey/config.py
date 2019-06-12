@@ -57,9 +57,6 @@ def _parse_afp(specibus):
 
 
 djrc = os.environ.get('DJRC', os.path.expanduser('~/.djrc'))
-print(djrc)
-system.exit(0)
-
 _config = configparser.ConfigParser()
 _config.read(djrc)
 
