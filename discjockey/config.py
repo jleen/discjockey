@@ -24,6 +24,7 @@ _parser.add_argument('--rename', action='store_true')
 _parser.add_argument('-f', '--allow_wrong_length', action='store_true')
 _parser.add_argument('-d', '--first_disc', metavar='N', type=int, default=1)
 _parser.add_argument('--nometa', action='store_true')
+_parser.add_argument('--extension', metavar='EXT', default='.flac')
 _parser.add_argument('args', nargs='*')
 
 _args = _parser.parse_args()
@@ -50,6 +51,7 @@ create_playlists = _args.create_playlists and _args.first_disc == 1
 allow_wrong_length = _args.allow_wrong_length
 first_disc = _args.first_disc
 nometa = _args.nometa
+extension = _args.extension
 
 
 def _parse_afp(specibus):

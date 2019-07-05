@@ -10,7 +10,7 @@ from discjockey import config
 from discjockey import platform
 
 playlist_extension = '.m3u'
-track_extension = '.flac'
+track_extension = config.extension
 
 DISC_DELIMITER = uuid.uuid4()
 SKIPPED_TRACK = uuid.uuid4()
@@ -220,15 +220,16 @@ def rename_files(tracks, album_path):
                                 (old_name, new_name))
             os.rename(os.path.join(path, old_name),
                       os.path.join(path, new_name))
-        subprocess.check_output([
-            platform.bin_metaflac(),
-            '--remove-all-tags',
-            '--set-tag=GENRE=%s' % track['genre'],
-            '--set-tag=ARTIST=%s' % track['artist'],
-            '--set-tag=ALBUM=%s' % track['album'],
-            '--set-tag=TITLE=%s' % track['title'],
-            '--set-tag=TRACKNUMBER=%d' % linear_num,
-            os.path.join(path, new_name)])
+        if track_extension == '.flac':
+            subprocess.check_output([
+                platform.bin_metaflac(),
+                '--remove-all-tags',
+                '--set-tag=GENRE=%s' % track['genre'],
+                '--set-tag=ARTIST=%s' % track['artist'],
+                '--set-tag=ALBUM=%s' % track['album'],
+                '--set-tag=TITLE=%s' % track['title'],
+                '--set-tag=TRACKNUMBER=%d' % linear_num,
+                os.path.join(path, new_name)])
 
 
 def dissect_track_path(track_path):
