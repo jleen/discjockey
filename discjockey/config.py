@@ -62,9 +62,6 @@ djrc = os.environ.get('DJRC', os.path.expanduser('~/.djrc'))
 _config = configparser.ConfigParser()
 _config.read(djrc)
 
-gracenote_client = _config['Gracenote']['client']
-gracenote_user = _config['Gracenote']['user']
-
 rip_bin = None
 rip_args = ''
 ps1_eject = None

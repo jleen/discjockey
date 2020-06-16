@@ -111,46 +111,6 @@ def eject_disc():
 
 
 #
-# read_toc
-#
-
-def read_toc():
-    if MAC_OS:
-        p = subprocess.Popen(['/usr/bin/drutil', 'trackinfo'],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        toc = ''
-        last_start = None
-        last_length = None
-        for line in out.splitlines():
-            if line[8:18] == b'trackStart':
-                last_start = int(line[27:]) + 150
-                toc += str(last_start) + ' '
-            elif line[16:25] == b'trackSize':
-                last_length = int(line[27:])
-            elif line.startswith(b'  Please insert a disc to get track info.'):
-                print("You don't seem to have given me a disc.")
-                sys.exit(1)
-        # drutil doesn't report the leadout, but Gracenote needs it for ID.
-        toc += str(last_start + last_length) + ' '
-    elif WINDOWS:
-        discid = get_discid().decode('UTF-8').split(' ')
-        # This is a sad hack.
-        leadout = str(REDBOOK_FRAMES_PER_SEC * int(discid[-1]))
-        toc = ' '.join(discid[2:-1] + [leadout])
-
-    else:
-        p = subprocess.Popen(['/usr/bin/cdrecord', '-toc'],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        toc = ''
-        for line in out.splitlines():
-            if line.startswith(b'track'):
-                toc += str(int(line[17:26]) + 150) + ' '
-    return toc
-
-
-#
 # get_discid
 #
 
