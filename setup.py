@@ -5,12 +5,13 @@ setup(
     version='0.1',
     packages=['discjockey'],
     entry_points={
-        'console_scripts': ['dj = discjockey.transcode:transcode',
-                            'frip = discjockey.rip:rip',
-                            'frename = discjockey.rip:rename',
+        'console_scripts': ['cosmetize = discjockey.beautify:cosmetize',
+                            'decamp = discjockey.decamp:decamp',
+                            'dj = discjockey.transcode:transcode',
                             'fident = discjockey.ident:ident',
                             'fit = discjockey.fit:fit',
-                            'cosmetize = discjockey.beautify:cosmetize',
+                            'frename = discjockey.rip:rename',
+                            'frip = discjockey.rip:rip',
                             'sleepless = discjockey.sleepless:sleepless']
     }
 )
