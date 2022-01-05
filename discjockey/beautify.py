@@ -111,3 +111,7 @@ def cosmetize():
         if new_prefix == END_OF_SET:
             prefix = None
             print()
+
+
+if __name__ == '__main__':
+    cosmetize()
