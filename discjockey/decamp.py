@@ -26,7 +26,12 @@ def decamp():
     with ZipFile(sys.argv[1]) as zipfile:
         files = zipfile.namelist()
         prefix = bandcamp_prefix(files)
-        (artist, album) = prefix[:-len(DELIM)].split(DELIM, 1)
+        try:
+            (artist, album) = prefix[:-len(DELIM)].split(DELIM, 1)
+        except Exception as ex:
+            print("Can't parse common file prefix " + prefix)
+            print("Filenames are:\n" + "\n".join(files))
+            raise ex
         print('Album is ' + album + ' by ' + artist)
         where = os.path.join(artist, album)
         os.makedirs(where, exist_ok=True)

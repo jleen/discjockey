@@ -6,11 +6,8 @@ import sys
 import unicodedata
 import uuid
 
-from discjockey import config
-from discjockey import platform
 
 playlist_extension = '.m3u'
-track_extension = config.extension
 
 DISC_DELIMITER = uuid.uuid4()
 SKIPPED_TRACK = uuid.uuid4()
@@ -44,16 +41,11 @@ def sanitize_filename(filename):
     return filename
 
 
-def make_playlists(filename, album_path):
-    """Given the path to an album spec, returns a data structure containing all
+def make_playlists(master_name, track_list, album_path, track_extension):
+    """Given an album spec, returns a data structure containing all
     the playlists to generate, including the master playlist containing all
     tracks."""
 
-    f = open(filename, 'r', encoding='UTF-8')
-    track_list = f.readlines()
-    f.close()
-
-    master_name = os.path.split(filename)[1]
     set_name = None
     track_num = 0
     set_num = 0
@@ -170,19 +162,23 @@ def is_metatrack(track_name):
     return track_name == DISC_DELIMITER or track_name == SKIPPED_TRACK
 
 
-def write_playlists(playlists, album_path):
-    if not config.rename:
-        os.makedirs(os.path.join(platform.music_path,
-                                 album_path))
+def write_playlists(playlists, album_path='', dry_run=False, rename=False):
+    if not dry_run and not rename and album_path:
+        os.makedirs(album_path)
     for playlist in playlists:
-        path = os.path.join(platform.music_path,
-                            album_path, playlist['filename'])
-        if config.rename and os.path.exists(path):
-            os.remove(path)
-        with open(path, 'w', encoding='UTF-8') as f:
+        path = os.path.join(album_path, playlist['filename'])
+        if not dry_run:
+            if rename and os.path.exists(path):
+                os.remove(path)
+            with open(path, 'w', encoding='UTF-8') as f:
+                for track in playlist['tracks']:
+                    if not is_metatrack(track):
+                        f.write(track['filename'] + '\n')
+        else:
+            print(f'Would write playlist {path} with tracks:')
             for track in playlist['tracks']:
                 if not is_metatrack(track):
-                    f.write(track['filename'] + '\n')
+                    print(f'   {track["filename"]}')
 
 
 def divide_tracks_by_disc(tracks):
@@ -198,7 +194,7 @@ def divide_tracks_by_disc(tracks):
     return track_sets
 
 
-def rename_files(tracks, album_path):
+def rename_files(tracks, album_path, track_extension):
     tracks = [track for track in tracks if not is_metatrack(track)]
     path = os.path.join(platform.music_path, album_path)
     files = [f for f in os.listdir(path) if f.endswith(track_extension)]
@@ -236,7 +232,7 @@ def dissect_track_path(track_path):
     comps = track_path.split(os.path.sep)
     if len(comps) < 3:
         raise Exception(
-                'Album path %d should be Genre/Collection/Album or deeper'
+                'Album path %s should be Genre/Collection/Album or deeper'
                 % track_path)
     return comps[0], comps[-2], comps[-1]
 
@@ -332,28 +328,48 @@ def rip_and_encode(tracks, album_path):
         platform.eject_disc()
 
 
+# TODO: This is so sad.
+def load_eagerly_initialized_modules():
+    from discjockey import config, platform
+    return (config, platform)
+
+
 def rename():
+    (config, platform) = load_eagerly_initialized_modules()
     # HACK HACK HACK
     config.rename = True
-    rip()
+    main(config, platform)
 
 
 def rip():
+    (config, platform) = load_eagerly_initialized_modules()
+    main(config, platform)
+
+
+def main(config, platform):
     # TODO(jleen): Is it worth dispatching to wrip automatically?
     if platform.CYGWIN:
         raise Exception('Please use wrip instead')
     platform.prevent_sleep()
 
     album_path = config.args[0]
-    playlists = make_playlists(os.path.join(platform.catalog_path, album_path),
-                               album_path)
+    filename = os.path.join(platform.catalog_path, album_path)
+    master_name = os.path.split(filename)[1]
+    f = open(filename, 'r', encoding='UTF-8')
+    track_list = f.readlines()
+    f.close()
+    playlists = make_playlists(master_name, track_list, album_path,
+                               config.track_extension)
 
     if not config.rename:
         assert_first_disc_length(playlists[0]['tracks'])
     if config.create_playlists:
-        write_playlists(playlists, album_path)
+        write_playlists(playlists,
+                        os.path.join(platform.music_path, album_path),
+                        rename=config.rename)
 
     if config.rename:
-        rename_files(playlists[0]['tracks'], album_path)
+        rename_files(playlists[0]['tracks'], album_path,
+                     config.track_extension)
     elif config.rip:
         rip_and_encode(playlists[0]['tracks'], album_path)

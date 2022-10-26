@@ -39,7 +39,7 @@ SUBS = [('1.', 'I.'),
         ('10.', 'X.')]
 
 
-def beautify(line):
+def beautify_line(line):
     for (old, new) in SUBS:
         line = re.sub('^' + re.escape(old), new, line)
     return line
@@ -55,12 +55,10 @@ def decrement_index(i, lines):
     return i
 
 
-def cosmetize():
-    lines = []
-
-    for line in sys.stdin:
-        if len(line) > 1 and not re.match(r'^~\w', line):
-            lines += [[line.rstrip(), None, 0]]
+def beautify(tracks):
+    out = []
+    # TODO: Ugh.
+    lines = [[track, None, 0] for track in tracks]
 
     prefix = None
 
@@ -94,23 +92,58 @@ def cosmetize():
     prefix = None
     for (line, new_prefix, strip_len) in lines:
         if line == DISC_DELIMITER:
-            print(DISC_DELIMITER)
+            out += [DISC_DELIMITER]
             assert not new_prefix
             assert not strip_len
         else:
             if new_prefix and new_prefix != END_OF_SET:
                 prefix = new_prefix
-                print('* %s' % prefix)
+                out += ['* %s' % prefix]
 
             if prefix:
                 assert line.startswith(prefix)
-                print(beautify(line[strip_len:]))
+                out += [beautify_line(line[strip_len:])]
             else:
-                print(beautify(line))
+                out += [beautify_line(line)]
 
         if new_prefix == END_OF_SET:
             prefix = None
-            print()
+            out += ['']
+
+    return out
+
+
+def sets(tracks):
+    raw = beautify(tracks)
+
+    out = []
+    cur = out
+
+    for line in raw:
+        if len(line) == 0:
+            if id(cur) != id(out):
+                out += [cur]
+                cur = out
+        elif line.startswith('* '):
+            if id(cur) != id(out):
+                out += [cur]
+            cur = [line[2:]]
+        else:
+            cur += [line]
+    if id(cur) != id(out):
+        out += [cur]
+
+    return out
+
+def cosmetize():
+    lines = []
+
+    for line in sys.stdin:
+        if len(line) > 1 and not re.match(r'^~\w', line):
+            lines += line.rstrip()
+
+    for line in beautify(lines):
+        print(line)
 
 
 if __name__ == '__main__':

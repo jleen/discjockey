@@ -12,6 +12,7 @@ setup(
                             'fit = discjockey.fit:fit',
                             'frename = discjockey.rip:rename',
                             'frip = discjockey.rip:rip',
+                            'largo = discjockey.largo:largo',
                             'sleepless = discjockey.sleepless:sleepless']
     }
 )
