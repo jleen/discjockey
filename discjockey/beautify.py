@@ -15,6 +15,7 @@ def longest_common_prefix(foo, bar):
             result += f
         else:
             return result
+    return result
 
 
 CRUFTY = re.compile(r'[:\-, ]*(I*)$')
@@ -56,7 +57,19 @@ def decrement_index(i, lines):
 
 
 def beautify(tracks):
+    # We're gonna follow the "array of strings as an output stream" pattern.
     out = []
+
+    # First, trim any common prefix of the whole set,
+    # because it's probably just the composer or something else redundant.
+    boring_prefix = tracks[0]
+    for track in tracks[1:]:
+        boring_prefix = longest_common_prefix(boring_prefix, track)
+
+    if ' - ' in boring_prefix:
+        where = boring_prefix.rindex(' - ')
+        tracks = [track[where+3:-1] for track in tracks]
+
     # TODO: Ugh.
     lines = [[track, None, 0] for track in tracks]
 
