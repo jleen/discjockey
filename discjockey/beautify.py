@@ -68,7 +68,7 @@ def beautify(tracks):
 
     if ' - ' in boring_prefix:
         where = boring_prefix.rindex(' - ')
-        tracks = [track[where+3:-1] for track in tracks]
+        tracks = [track[where+3:] for track in tracks]
 
     # TODO: Ugh.
     lines = [[track, None, 0] for track in tracks]
