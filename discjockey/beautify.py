@@ -18,7 +18,7 @@ def longest_common_prefix(foo, bar):
     return result
 
 
-CRUFTY = re.compile(r'[:\-, ]*(I*|No. )$')
+CRUFTY = re.compile(r'[:\-, ]*(I*|No. \d*)$')
 
 
 def sanitize_prefix(prefix):
