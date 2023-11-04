@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016 John Leen
+# Copyright (c) 2013-2023 John Leen
 
 import os
 import subprocess
@@ -330,23 +330,23 @@ def rip_and_encode(tracks, album_path):
 
 # TODO: This is so sad.
 def load_eagerly_initialized_modules():
+    global config, platform
     from discjockey import config, platform
-    return (config, platform)
 
 
 def rename():
-    (config, platform) = load_eagerly_initialized_modules()
+    load_eagerly_initialized_modules()
     # HACK HACK HACK
     config.rename = True
-    main(config, platform)
+    main()
 
 
 def rip():
-    (config, platform) = load_eagerly_initialized_modules()
-    main(config, platform)
+    load_eagerly_initialized_modules()
+    main()
 
 
-def main(config, platform):
+def main():
     # TODO(jleen): Is it worth dispatching to wrip automatically?
     if platform.CYGWIN:
         raise Exception('Please use wrip instead')
@@ -359,7 +359,7 @@ def main(config, platform):
     track_list = f.readlines()
     f.close()
     playlists = make_playlists(master_name, track_list, album_path,
-                               config.track_extension)
+                               config.extension)
 
     if not config.rename:
         assert_first_disc_length(playlists[0]['tracks'])
