@@ -275,9 +275,10 @@ def rip_and_encode(tracks, album_path):
             if track == SKIPPED_TRACK:
                 continue
 
-            print(('Ripping ' + track['title']))
+            fraction = f'[{track_num}/{len(disc_tracks)}]'
+            print(f'{fraction} Ripping {track["title"]}')
             if track['set']:
-                print(('from ' + track['set']))
+                print(f'{" " * len(fraction)} from {track["set"]}')
             print()
 
             output_file = os.path.join(
