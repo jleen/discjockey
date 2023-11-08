@@ -27,26 +27,42 @@ def find_track_list(disc_id, medium_list):
 
 
 def get_tracks_from_musicbrainz(exit_on_fail):
-    disc_id = discid.read().id
-    disc_data = mbz.get_releases_by_discid(
-            disc_id, includes=['recordings', 'artists'])
+    disc = discid.read()
+    try:
+        disc_data = mbz.get_releases_by_discid(
+                disc.id, includes=['recordings', 'artists'])
+        # There could be more than one release that includes this disc.  Since
+        # we're just going to traverse back to the disc's representation within the
+        # release, it doesn't really matter which one we choose.  So choose the
+        # first one.
+        if 'disc' in disc_data:
+            release = disc_data['disc']['release-list'][0]
 
-    # There could be more than one release that includes this disc.  Since
-    # we're just going to traverse back to the disc's representation within the
-    # release, it doesn't really matter which one we choose.  So choose the
-    # first one.
-    release = disc_data['disc']['release-list'][0]
+            title = release['title']
+            artist = release['artist-credit-phrase']
+            # TODO: Can MusicBrainz give us a genre tag?
 
-    title = release['title']
-    artist = release['artist-credit-phrase']
-    # TODO: Can MusicBrainz give us a genre tag?
+            track_list = find_track_list(disc.id, release['medium-list'])
+            sorted_tracks = sorted(track_list, key=lambda t: int(t['position']))
+            tracks = [track['recording']['title'] for track in sorted_tracks]
+        elif 'cdstub' in disc_data:
+            stub = disc_data['cdstub']
+            title = stub['title']
+            artist = stub['artist']
+            tracks = [track['title'] for track in stub['track-list']]
+        else:
+            raise Exception('Unable to parse cddb')
+    except mbz.musicbrainz.ResponseError as e:
+        if e.cause.status == 404:
+            tracks = [str(i+1) for i in range(len(disc.tracks))]
+            artist = None
+            title = None
+        else:
+            raise
 
-    track_list = find_track_list(disc_id, release['medium-list'])
-    sorted_tracks = sorted(track_list, key=lambda t: int(t['position']))
-    tracks = [track['recording']['title'] for track in sorted_tracks]
 
     lines = []
-    if not config.nometa:
+    if artist and not config.nometa:
         #lines.append('~g %s' % genre)
         lines.append('~r %s' % artist)
         lines.append('~a %s' % title)
