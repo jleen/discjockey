@@ -5,7 +5,7 @@ description = ""
 authors = ["John Leen <jleen@saturnvalley.org>"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 discid = "1.2.0"
 musicbrainzngs = "0.7.1"
 
