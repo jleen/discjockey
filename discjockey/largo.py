@@ -1,7 +1,6 @@
 import argparse
 import os
 import re
-import sys
 
 from itertools import chain
 from zipfile import ZipFile
@@ -27,7 +26,7 @@ def bandcamp_prefix(strings):
     skip = 0
     candidate = ''
     found = ''
-    for i in range(0, first.count(DELIM)):
+    for _ in range(0, first.count(DELIM)):
         skip = first.find(DELIM, skip) + len(DELIM)
         candidate = first[0:skip]
         for s in strings:
