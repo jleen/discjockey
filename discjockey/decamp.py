@@ -35,7 +35,11 @@ def decamp():
         if count <= len(tracks) / 2:
             primary_artist = 'Anthology'
 
-        dest_dir = Path(primary_artist, tracks[1][2])
+        try:
+            dest_dir = Path(primary_artist, tracks[0][2])
+        except Exception as e:
+            e.add_note(str(tracks))
+            raise
         dest_dir.mkdir(parents=True)
 
         for (filename, artist, _, title) in tracks:
