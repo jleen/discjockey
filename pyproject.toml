@@ -1,15 +1,21 @@
-[tool.poetry]
+[project]
 name = "discjockey"
 version = "0.1.0"
 description = ""
-authors = ["John Leen <jleen@saturnvalley.org>"]
+authors = [
+    { name = "John Leen", email = "jleen@saturnvalley.org" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "discid ==1.2.0",
+    "musicbrainzngs ==0.7.1"
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-discid = "1.2.0"
-musicbrainzngs = "0.7.1"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
+[project.scripts]
 cosmetize = 'discjockey.beautify:cosmetize'
 decamp = 'discjockey.decamp:decamp'
 dj = 'discjockey.transcode:transcode'
@@ -20,7 +26,5 @@ frip = 'discjockey.rip:rip'
 largo = 'discjockey.largo:largo'
 sleepless = 'discjockey.sleepless:sleepless'
 
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+# [tool.uv]
+# default-groups = []

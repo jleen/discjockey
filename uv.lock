@@ -1,0 +1,33 @@
+version = 1
+revision = 2
+requires-python = ">=3.9"
+
+[[package]]
+name = "discid"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/fa/c8856ae3eb53393445d84589afbd49ded85527563a7c0457f4e967d5b7af/discid-1.2.0.tar.gz", hash = "sha256:cd9630bc53f5566df92819641040226e290b2047573f2c74a6e92b8eed9e86b9", size = 30777, upload-time = "2019-02-23T11:16:55.652Z" }
+
+[[package]]
+name = "discjockey"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "discid" },
+    { name = "musicbrainzngs" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "discid", specifier = "==1.2.0" },
+    { name = "musicbrainzngs", specifier = "==0.7.1" },
+]
+
+[[package]]
+name = "musicbrainzngs"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/67/3e74ae93d90ceeba72ed1a266dd3ca9abd625f315f0afd35f9b034acedd1/musicbrainzngs-0.7.1.tar.gz", hash = "sha256:ab1c0100fd0b305852e65f2ed4113c6de12e68afd55186987b8ed97e0f98e627", size = 117469, upload-time = "2020-01-11T17:38:47.581Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/fd/cef7b2580436910ccd2f8d3deec0f3c81743e15c0eb5b97dde3fbf33c0c8/musicbrainzngs-0.7.1-py2.py3-none-any.whl", hash = "sha256:e841a8f975104c0a72290b09f59326050194081a5ae62ee512f41915090e1a10", size = 25289, upload-time = "2020-01-11T17:38:45.469Z" },
+]
