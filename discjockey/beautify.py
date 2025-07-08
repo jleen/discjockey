@@ -153,7 +153,7 @@ def cosmetize():
 
     for line in sys.stdin:
         if len(line) > 1 and not re.match(r'^~\w', line):
-            lines += line.rstrip()
+            lines += [line.rstrip()]
 
     for line in beautify(lines):
         print(line)
