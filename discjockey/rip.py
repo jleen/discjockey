@@ -371,6 +371,6 @@ def main():
 
     if config.rename:
         rename_files(playlists[0]['tracks'], album_path,
-                     config.track_extension)
+                     config.extension)
     elif config.rip:
         rip_and_encode(playlists[0]['tracks'], album_path)
