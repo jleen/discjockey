@@ -14,6 +14,9 @@ def main():
     elif cmd == 'intake':
         from . import fit
         fit.fit()
+    elif cmd == 'rip':
+        from . import rip
+        rip.rip()
     elif cmd == 'rename':
         from . import rip
         rip.rename()
