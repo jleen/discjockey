@@ -16,6 +16,7 @@ _parser.add_argument('--cdrom', metavar='PATH')
 _parser.add_argument('--discid_cmd', metavar='CMD')
 _parser.add_argument('--eject_cmd', metavar='CMD')
 _parser.add_argument('--wait_cmd', metavar='CMD')
+_parser.add_argument('--lib', metavar='PATH')
 _parser.add_argument('-v', '--verbose', action='count')
 _parser.add_argument('--nocreate_playlists', dest='create_playlists',
                      action='store_false')
@@ -41,6 +42,7 @@ bin_discid = _args.discid_cmd
 bin_metaflac = _args.metaflac_bin
 bin_cdparanoia = _args.cdparanoia_bin
 bin_flac = _args.flac_bin
+libpath = _args.lib
 
 music_path = _args.music
 catalog_path = _args.catalog
@@ -77,6 +79,8 @@ if 'Binaries' in _config:
         bin_flac = binaries['flac']
     if not bin_metaflac:
         bin_metaflac = binaries['metaflac']
+    if not libpath:
+        libpath = binaries['lib']
     if 'rip' in binaries:
         rip_bin = binaries['rip']
     if 'rip_args' in binaries:
@@ -95,3 +99,7 @@ if not music_path:
 scratch_dir = None
 if 'Paths' in _config and 'scratch' in _config['Paths']:
     scratch_dir = _config['Paths']['scratch']
+
+# TODO: We really need to move all of this out of the module init.
+if libpath:
+    os.environ['LD_LIBRARY_PATH'] = libpath
