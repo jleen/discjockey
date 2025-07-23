@@ -3,14 +3,6 @@
 import discid
 import musicbrainzngs as mbz
 import os
-import sys
-import urllib.error
-import urllib.error
-import urllib.parse
-import urllib.parse
-import urllib.request
-import urllib.request
-from xml.etree import ElementTree
 
 from discjockey import config
 from discjockey import platform as djplatform
@@ -26,7 +18,7 @@ def find_track_list(disc_id, medium_list):
                 return medium['track-list']
 
 
-def get_tracks_from_musicbrainz(exit_on_fail):
+def get_tracks_from_musicbrainz():
     disc = discid.read()
     try:
         disc_data = mbz.get_releases_by_discid(
@@ -76,7 +68,7 @@ def get_tracks_from_musicbrainz(exit_on_fail):
     return lines
 
 
-def ident(exit_on_fail = True):
+def ident():
     album = None
     if len(config.args) >= 1:
         album = os.path.join(config.catalog_path, config.args[0])
@@ -97,7 +89,7 @@ def ident(exit_on_fail = True):
             print('--- Insert disc %d of %d ---' % (disc + 1, num_discs))
             djplatform.wait_for_disc()
 
-        lines = get_tracks_from_musicbrainz(exit_on_fail)
+        lines = get_tracks_from_musicbrainz()
 
         if album:
             if not os.path.exists(os.path.dirname(album)):
